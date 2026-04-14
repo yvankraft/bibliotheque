@@ -3,11 +3,7 @@ import React from "react";
 const page = () => {
   return (
     <div>
-      <div className="h-screen flex flex-col justify-center items-center">
-        <h1 className="title">
-          The open-source library for fullstack developers.
-        </h1>
-      </div>
+      <h1>Components</h1>
       <div id="components">
         <div>
           <div>Frontend</div>
