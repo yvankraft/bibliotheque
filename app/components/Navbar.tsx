@@ -8,7 +8,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   return (
-    <nav className="fixed bg-white dark:bg-zinc-950 z-50 top-0 left-0 right-0 border border-gray-500 w-full max-w-[1600px] mx-auto justify-around items-center flex flex">
+    <nav className="fixed bg-white dark:bg-zinc-950 z-50 top-0 left-0 right-0 border border-gray-500 w-full max-w-[1600px] mx-auto justify-around items-center flex">
       <div className="flex justify-evenly items-center gap-4 ">
         <div>
           <Tooltip text="home">
@@ -37,6 +37,13 @@ const Navbar = () => {
           <Link href="/documentation">
             <span className="hidden sm:block text-black/40 dark:text-white/40 hover:text-black/80 dark:hover:text-white/80 transition duration-300 hover:cursor-pointer">
               Documentation
+            </span>
+          </Link>
+        </Tooltip>
+        <Tooltip text="go to show page">
+          <Link href="/Demo">
+            <span className="hidden sm:block text-black/40 dark:text-white/40 hover:text-black/80 dark:hover:text-white/80 transition duration-300 hover:cursor-pointer">
+              Demo
             </span>
           </Link>
         </Tooltip>

@@ -28,8 +28,8 @@ const page = () => {
         </div>
       </div>
       <div id="components">
-        <div className="md:flex justify-around items-center space-y-4 ">
-          <div className="flex flex-col justify-around p-6 rounded-xl  border bg-whit/50 border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/50 w-[300px ] sm:w-[400px] h-[300px] hover:scale-105 transition duration-300 active:scale-95">
+        <div className="md:flex justify-around items-center p-2 ">
+          <div className="flex flex-col justify-around p-6 rounded-xl m-2 border bg-whit/50 border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/50 w-[300px ] md:w-[400px] h-[300px] hover:scale-105 transition duration-300 active:scale-95">
             <h1 className="title">Frontend</h1>
             <p className=" text-zinc-400 md:text-xl text-center">
               Focusing on design elements like navigation bars, interactive
@@ -43,7 +43,7 @@ const page = () => {
               />
             </Tooltip>
           </div>
-          <div className="flex flex-col justify-around p-6 rounded-xl  border bg-whit/50 border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/50 w-[300px ] sm:w-[400px] h-[300px] hover:scale-105 transition duration-300 active:scale-95">
+          <div className="flex flex-col justify-around p-6 rounded-xl m-2  border bg-whit/50 border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/50 w-[300px ] md:w-[400px] h-[300px] hover:scale-105 transition duration-300 active:scale-95">
             <h1 className="title">Backend</h1>
             <p className=" text-zinc-400 md:text-xl text-center">
               Forget backgrounds or boxes. Here, we build the core logic:
@@ -54,7 +54,7 @@ const page = () => {
               <SeeMoreButton text="let's see more" href="/composants/backend" />
             </Tooltip>
           </div>
-          <div className="flex flex-col justify-around p-6 rounded-xl  border bg-whit/50 border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/50 w-[300px ] sm:w-[400px] h-[300px] hover:scale-105 transition duration-300 active:scale-95">
+          <div className="flex flex-col justify-around p-6 rounded-xl m-2 border bg-whit/50 border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/50 w-[300px ] md:w-[400px] h-[300px] hover:scale-105 transition duration-300 active:scale-95">
             <h1 className="title">Fullstack</h1>
             <p className="text-zinc-400 md:text-xl text-center">
               Bridge the gap between UI and Data. Here, we focus on the

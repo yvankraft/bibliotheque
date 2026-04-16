@@ -11,18 +11,22 @@ export default function NotFound() {
 
         <div className="mt-[-40px]">
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">
-            Oups ! Page introuvable
+            Oups ! Component Not Found
           </h2>
           <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md mx-auto">
-            La page que vous recherchez semble avoir disparu ou n'a jamais
-            existé. Peut-être qu'elle est en train d'ouvrir sa propre boutique ?
+            It seems you forgot to import this page. Or maybe we refactored it
+            so hard it simply disappeared into the void. Either way, this route
+            returns{" "}
+            <span className="bg-slate-400 px-2 py-1 rounded-xl text-black dark:text-white ">
+              undefined
+            </span>
           </p>
 
           <Link
             href="/"
             className="btn-primary px-8 py-3 inline-block transition-transform hover:scale-105"
           >
-            Retourner à l'accueil
+            go back to home
           </Link>
         </div>
       </div>

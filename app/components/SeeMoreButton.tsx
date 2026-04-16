@@ -27,7 +27,7 @@ export default function SeeMoreButton({ href, text }: Props) {
         initial="rest"
         whileHover="hover"
         whileTap="pressed"
-        className="mt-4 px-4 py-2 flex flex-row items-center gap-2 bg-slate-600 hover:bg-slate-500 text-white transition-colors duration-300 group rounded-2xl"
+        className="btn-ghost"
       >
         <span className=" md:text-sm font-bold uppercase tracking-wider whitespace-nowrap ">
           {text}
