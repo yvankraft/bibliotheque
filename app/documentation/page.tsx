@@ -7,7 +7,7 @@ import SeeMoreButton from "../components/SeeMoreButton";
 
 const page = () => {
   return (
-    <div className="flex min-h-screen mx-auto">
+    <div className="flex min-h-screen mx-auto md:gap-18 pb-10 ">
       <SideMenu />
       <main className="flex-1 pt-26 p-4 max-w-3xl ">
         {" "}

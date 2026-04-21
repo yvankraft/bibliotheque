@@ -134,6 +134,12 @@ const Navbar = () => {
             >
               Home
             </Link>
+            <Link
+              className="flex justify-between w-[250px] mx-auto border-b-2 border-slate-300 py-1"
+              href="/Demo"
+            >
+              <span>Demo</span>
+            </Link>
           </nav>
         </div>
       </div>
