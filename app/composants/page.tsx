@@ -2,6 +2,8 @@ import { Layout, Server, Database } from "lucide-react";
 import Link from "next/link";
 // On importe tes datas pour calculer les compteurs
 import { componentsListData } from "@/app/data/components";
+import Navbar from "../components/Navbar";
+import Footer from "../components/footer";
 
 export default function ComponentsHub() {
   // Fonction pour compter dynamiquement
@@ -37,8 +39,9 @@ export default function ComponentsHub() {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto min-h-screen overflow-y-auto py-12 px-6 flex flex-col items-center justify-center">
-      <div className="mb-12 flex flex-col items-center">
+    <div>
+    <main className="max-w-5xl mx-auto min-h-screen overflow-y-auto py-12 px-6 flex flex-col items-center justify-center">
+      <div className="my-12 flex flex-col items-center">
         <h1 className="text-4xl font-black tracking-tighter text-zinc-900 dark:text-white mb-4">
           Components.hub
         </h1>
@@ -47,6 +50,7 @@ export default function ComponentsHub() {
           All components are highly customizable.
         </p>
       </div>
+      <Navbar />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {categories.map((cat) => (
@@ -84,7 +88,9 @@ export default function ComponentsHub() {
           </span>
           "
         </p>
-      </footer>
+      </footer></main>
+      <Footer />
+
     </div>
   );
 }

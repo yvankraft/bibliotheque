@@ -4,10 +4,12 @@ import { CopyCommand } from "../components/CopyCommand";
 import { Star, Lock } from "lucide-react";
 import Link from "next/link";
 import SeeMoreButton from "../components/SeeMoreButton";
+import Navbar from "../components/Navbar";
 
 const page = () => {
   return (
     <div className="flex min-h-screen mx-auto md:gap-18 pb-10 ">
+      <Navbar />
       <SideMenu />
       <main className="flex-1 pt-26 p-4 max-w-3xl ">
         {" "}

@@ -35,16 +35,19 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: req.headers,
-    });
-
+    const session = await auth.api.getSession({ headers: req.headers });
     if (!session || !session.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const url = new URL(req.url);
+    const trash = url.searchParams.get("trash") === "true";
+
     const projects = await prisma.project.findMany({
-      where: { userId: session.user.id },
+      where: { 
+        userId: session.user.id,
+        isDeleted: trash, // true pour la corbeille, false pour le dashboard actif
+      },
       orderBy: { createdAt: "desc" },
     });
 

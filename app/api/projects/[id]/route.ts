@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { auth } from "../../../lib/auth";
 import { prisma } from "../../../lib/db";
 
+// Soft delete (envoie dans la corbeille) ou Suppression définitive si demandé
 export async function DELETE(
   req: Request,
-    { params }: { params: Promise<{ id: string }> }
-    ) {
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await auth.api.getSession({ headers: req.headers });
     if (!session || !session.user) {
@@ -13,18 +14,24 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const url = new URL(req.url);
+    const permanent = url.searchParams.get("permanent") === "true";
 
-    const project = await prisma.project.findUnique({
-      where: { id },
-    });
-
+    const project = await prisma.project.findUnique({ where: { id } });
     if (!project || project.userId !== session.user.id) {
-      return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    await prisma.project.delete({
-      where: { id },
-    });
+    if (permanent) {
+      // Suppression définitive de la base de données
+      await prisma.project.delete({ where: { id } });
+    } else {
+      // Envoi dans la corbeille
+      await prisma.project.update({
+        where: { id },
+        data: { isDeleted: true },
+      });
+    }
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
@@ -33,6 +40,7 @@ export async function DELETE(
   }
 }
 
+// Pour restaurer un projet (isDeleted: false) ou le renommer
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -44,26 +52,23 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const { name } = await req.json();
+    const body = await req.json();
 
-    if (!name || name.trim() === "") {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
-    }
-
-    const project = await prisma.project.findUnique({
-      where: { id },
-    });
-
+    const project = await prisma.project.findUnique({ where: { id } });
     if (!project || project.userId !== session.user.id) {
-      return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const updatedProject = await prisma.project.update({
+    const updateData: any = {};
+    if (body.name !== undefined) updateData.name = body.name.trim();
+    if (body.isDeleted !== undefined) updateData.isDeleted = body.isDeleted;
+
+    const updated = await prisma.project.update({
       where: { id },
-      data: { name: name.trim() },
+      data: updateData,
     });
 
-    return NextResponse.json(updatedProject, { status: 200 });
+    return NextResponse.json(updated, { status: 200 });
   } catch (error) {
     console.error("Error updating project:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

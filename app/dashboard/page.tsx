@@ -1,145 +1,111 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { authClient } from "../api/lib/auth-client";
-import DashboardSidebar from "./components/DashboardSidebar";
-import { FiFolder, FiPlusCircle, FiX, FiMoreVertical, FiEdit2, FiShare2, FiTrash2 } from "react-icons/fi";
-import UniversalModal from "../components/UniversalModal";
+import { authClient } from "@/app/api/lib/auth-client";
+import { 
+  FiArrowLeft, FiLayout, FiLayers, FiSettings, FiCode, 
+  FiPlus, FiSmartphone, FiMonitor, FiTablet, FiPlay, FiCopy, FiCheck, FiTrash2
+} from "react-icons/fi";
 
-export default function DashboardPage() {
+// Import de tous tes blocs UI
+import { navbars } from "../UI-Blocks/navbars"; 
+import { heroes } from "../UI-Blocks/heroes";
+import { buttons } from "../UI-Blocks/buttons";
+import {textRotators} from "../UI-Blocks/textRotators";
+import { megaMenus } from "../UI-Blocks/megaMenus";
+import { productCards } from "../UI-Blocks/productCards";
+import { footers } from "../UI-Blocks/footers";
+import { textAreas } from "../UI-Blocks/textAreas";
+import { gridFeatures } from "../UI-Blocks/gridFeatures";
+import { pricingCards } from "../UI-Blocks/pricingCards";
+
+const allBlocks = [
+  ...navbars, 
+  ...heroes, 
+  ...megaMenus,
+  ...productCards, 
+  ...buttons, 
+  ...textRotators, 
+  ...footers, 
+  ...textAreas, 
+  ...megaMenus, 
+  ...gridFeatures, 
+  ...pricingCards
+];
+
+interface ProjectPageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function ProjectWorkspacePage({ params }: ProjectPageProps) {
   const router = useRouter();
+  const { id } = use(params);
+
   const [user, setUser] = useState<any>(null);
-  const [projects, setProjects] = useState<any[]>([]);
+  const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"layers" | "components" | "settings">("components");
+  const [deviceMode, setDeviceMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [copiedCode, setCopiedCode] = useState(false);
   
-  // États de la modale de création
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [projectName, setProjectName] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  // État des blocs déposés dans le canvas visuel
+  const [canvasBlocks, setCanvasBlocks] = useState<any[]>([]);
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
 
-  // Menu déroulant et actions par projet
-  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  // Modale de renommage
-  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
-  const [projectToRename, setProjectToRename] = useState<any>(null);
-  const [newProjectName, setNewProjectName] = useState("");
-
-  // État pour la modale universelle de partage
-  const [shareModalOpen, setShareModalOpen] = useState(false);
-
-  const fetchProjects = async () => {
-    try {
-      const res = await fetch("/api/projects");
-      if (res.ok) {
-        const data = await res.json();
-        setProjects(data);
-      }
-    } catch (err) {
-      console.error("Failed to load projects", err);
-    }
-  };
-
+  // Charger la session et les détails du projet
   useEffect(() => {
     authClient.getSession().then(({ data }) => {
       if (!data) {
         router.push("/auth/login");
       } else {
         setUser(data.user);
-        fetchProjects();
+        fetch(`/api/projects`)
+          .then((res) => res.json())
+          .then((projects) => {
+            const current = projects.find((p: any) => p.id === id);
+            setProject(current || { name: "Untitled Project" });
+            setLoading(false);
+          })
+          .catch(() => setLoading(false));
       }
-      setLoading(false);
     });
+  }, [id, router]);
 
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setActiveMenuId(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [router]);
+  const handleCopyCode = () => {
+    const fullCode = canvasBlocks.map(b => b.code).join("\n\n");
+    navigator.clipboard.writeText(`// Production-ready Next.js code for ${project?.name}\nexport default function Page() {\n  return (\n    <main className="min-h-screen">\n      ${fullCode}\n    </main>\n  );\n}`);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
 
-  const handleCreateProject = async (e: React.FormEvent) => {
+  // --- LOGIQUE DRAG & DROP & CANVAS ---
+  const handleDragStart = (e: React.DragEvent, block: any) => {
+    e.dataTransfer.setData("text/plain", JSON.stringify(block));
+    e.dataTransfer.effectAllowed = "copy";
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    setCreating(true);
-    setErrorMessage("");
-
-    try {
-      const res = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: projectName }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to create project");
+    const rawData = e.dataTransfer.getData("text/plain");
+    if (rawData) {
+      try {
+        const block = JSON.parse(rawData);
+        setCanvasBlocks([...canvasBlocks, { instanceId: Date.now().toString(), ...block }]);
+      } catch (err) {
+        console.error("Failed to parse dropped block", err);
       }
-
-      setProjectName("");
-      setIsModalOpen(false);
-      await fetchProjects();
-    } catch (err: any) {
-      setErrorMessage(err.message || "An unexpected error occurred.");
-    } finally {
-      setCreating(false);
     }
   };
 
-  const handleDeleteProject = async (id: string) => {
-    setActiveMenuId(null);
-    if (!confirm("Are you sure you want to delete this project?")) return;
-
-    try {
-      const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setProjects(projects.filter((p) => p.id !== id));
-      }
-    } catch (err) {
-      console.error("Failed to delete project", err);
-    }
-  };
-
-  const handleShareProject = (project: any) => {
-    setActiveMenuId(null);
-    const projectUrl = `${window.location.origin}/dashboard/project/${project.id}`;
-    navigator.clipboard.writeText(projectUrl);
-    setShareModalOpen(true);
-  };
-
-  const handleOpenRename = (project: any) => {
-    setActiveMenuId(null);
-    setProjectToRename(project);
-    setNewProjectName(project.name);
-    setIsRenameModalOpen(true);
-  };
-
-  const handleRenameSubmit = async (e: React.FormEvent) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    if (!projectToRename || !newProjectName.trim()) return;
-
-    try {
-      const res = await fetch(`/api/projects/${projectToRename.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newProjectName }),
-      });
-
-      if (res.ok) {
-        setIsRenameModalOpen(false);
-        await fetchProjects();
-      }
-    } catch (err) {
-      console.error("Failed to rename project", err);
-    }
+    e.dataTransfer.dropEffect = "copy";
   };
 
-  const handleOpenProject = (projectId: string) => {
-    router.push(`/dashboard/project/${projectId}`);
+  const removeBlock = (instanceId: string) => {
+    setCanvasBlocks(canvasBlocks.filter(b => b.instanceId !== instanceId));
+    if (selectedBlockId === instanceId) setSelectedBlockId(null);
   };
 
   if (loading) {
@@ -151,202 +117,225 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex transition-colors duration-300">
+    <div className="h-screen w-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex flex-col select-none transition-colors duration-300">
       
-      <DashboardSidebar user={user} />
-      
-      <main className="flex-1 h-full overflow-y-auto flex flex-col bg-white dark:bg-black relative">
-        
-        <header className="sticky top-0 z-30 min-h-[4rem] h-16 px-8 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md shrink-0">
-          <h1 className="text-sm font-semibold tracking-wide text-zinc-800 dark:text-zinc-200">Overview / Projects</h1>
-          
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-xs font-semibold hover:opacity-90 transition cursor-pointer shadow-sm"
+      {/* --- TOP NAVBAR --- */}
+      <header className="h-14 px-4 border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md flex items-center justify-between shrink-0 z-30">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => router.push("/dashboard")}
+            className="p-2 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition cursor-pointer"
+            title="Back to Dashboard"
           >
-            <FiPlusCircle size={14} />
-            <span>Create Project</span>
+            <FiArrowLeft size={16} />
           </button>
-        </header>
-
-        <div className="p-8 flex-1 w-full max-w-5xl mx-auto">
-          {projects.length === 0 ? (
-            <div className="flex flex-col justify-center items-center text-center h-[60vh]">
-              <div className="max-w-sm space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center mx-auto text-zinc-400">
-                  <FiFolder size={22} />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">No projects yet</h3>
-                  <p className="text-xs text-zinc-500">Get started by creating a new visual web project.</p>
-                </div>
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition cursor-pointer"
-                >
-                  <FiPlusCircle size={14} />
-                  <span>Create your first project</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {projects.map((project) => (
-                <div 
-                  key={project.id}
-                  onClick={() => handleOpenProject(project.id)}
-                  className="p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex items-center justify-between group hover:border-zinc-400 dark:hover:border-zinc-600 transition relative cursor-pointer"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300">
-                      <FiFolder size={18} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 group-hover:underline">{project.name}</h4>
-                      <p className="text-[11px] text-zinc-500">Created {new Date(project.createdAt).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-
-                  {/* Menu trois points */}
-                  <div className="relative" ref={menuRef} onClick={(e) => e.stopPropagation()}>
-                    <button 
-                      onClick={() => setActiveMenuId(activeMenuId === project.id ? null : project.id)}
-                      className="p-2 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800 transition cursor-pointer"
-                    >
-                      <FiMoreVertical size={16} />
-                    </button>
-
-                    {activeMenuId === project.id && (
-                      <div className="absolute right-0 mt-2 w-36 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl py-1.5 z-40 text-xs">
-                        <button
-                          onClick={() => handleOpenRename(project)}
-                          className="w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
-                        >
-                          <FiEdit2 size={13} />
-                          <span>Rename</span>
-                        </button>
-                        <button
-                          onClick={() => handleShareProject(project)}
-                          className="w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
-                        >
-                          <FiShare2 size={13} />
-                          <span>Share</span>
-                        </button>
-                        <div className="my-1 border-t border-zinc-200 dark:border-zinc-800" />
-                        <button
-                          onClick={() => handleDeleteProject(project.id)}
-                          className="w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-red-500/10 text-red-600 dark:text-red-400 transition cursor-pointer"
-                        >
-                          <FiTrash2 size={13} />
-                          <span>Delete</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="h-4 w-[1px] bg-zinc-200 dark:bg-zinc-800" />
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            <h1 className="text-xs font-semibold tracking-wide text-zinc-800 dark:text-zinc-200">{project?.name || "Project Workspace"}</h1>
+          </div>
         </div>
-      </main>
 
-      {/* --- MODALE DE CRÉATION DE PROJET --- */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-2xl space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-zinc-900">
-              <div>
-                <h2 className="text-sm font-bold text-zinc-900 dark:text-white">Create New Project</h2>
-                <p className="text-xs text-zinc-500 mt-0.5">Enter a name for your new workspace repository.</p>
+        {/* Device Switcher */}
+        <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 p-1 rounded-xl border border-zinc-200 dark:border-zinc-800">
+          <button 
+            onClick={() => setDeviceMode("desktop")}
+            className={`p-1.5 rounded-lg transition cursor-pointer ${deviceMode === "desktop" ? "bg-white dark:bg-black text-black dark:text-white shadow-sm" : "text-zinc-400 hover:text-zinc-600"}`}
+            title="Desktop View"
+          >
+            <FiMonitor size={14} />
+          </button>
+          <button 
+            onClick={() => setDeviceMode("tablet")}
+            className={`p-1.5 rounded-lg transition cursor-pointer ${deviceMode === "tablet" ? "bg-white dark:bg-black text-black dark:text-white shadow-sm" : "text-zinc-400 hover:text-zinc-600"}`}
+            title="Tablet View"
+          >
+            <FiTablet size={14} />
+          </button>
+          <button 
+            onClick={() => setDeviceMode("mobile")}
+            className={`p-1.5 rounded-lg transition cursor-pointer ${deviceMode === "mobile" ? "bg-white dark:bg-black text-black dark:text-white shadow-sm" : "text-zinc-400 hover:text-zinc-600"}`}
+            title="Mobile View"
+          >
+            <FiSmartphone size={14} />
+          </button>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCopyCode}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+          >
+            {copiedCode ? <FiCheck size={14} className="text-emerald-500" /> : <FiCopy size={14} />}
+            <span>{copiedCode ? "Copied" : "Export Code"}</span>
+          </button>
+          <button
+            onClick={() => alert("Preview mode activated!")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black dark:bg-white text-white dark:text-black text-xs font-semibold hover:opacity-90 transition cursor-pointer"
+          >
+            <FiPlay size={13} />
+            <span>Publish</span>
+          </button>
+        </div>
+      </header>
+
+      {/* --- MAIN WORKSPACE LAYOUT --- */}
+      <div className="flex-1 flex overflow-hidden">
+        
+        {/* LEFT SIDEBAR (Layers / UI Blocks) */}
+        <aside className="w-64 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col shrink-0">
+          <div className="flex border-b border-zinc-200 dark:border-zinc-800 p-2 gap-1">
+            <button
+              onClick={() => setActiveTab("components")}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${activeTab === "components" ? "bg-white dark:bg-zinc-900 text-black dark:text-white shadow-sm" : "text-zinc-500 hover:text-zinc-900"}`}
+            >
+              <FiLayout size={13} />
+              <span>UI Blocks</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("layers")}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${activeTab === "layers" ? "bg-white dark:bg-zinc-900 text-black dark:text-white shadow-sm" : "text-zinc-500 hover:text-zinc-900"}`}
+            >
+              <FiLayers size={13} />
+              <span>Layers</span>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+            {activeTab === "components" ? (
+              <div className="space-y-3">
+                <p className="text-[10px] uppercase font-semibold text-zinc-400 tracking-wider">Glissez les blocs vers le canvas</p>
+                {allBlocks.map((block) => (
+                  <div
+                    key={block.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, block)}
+                    className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-amber-500 transition cursor-grab active:cursor-grabbing flex flex-col gap-1 shadow-sm"
+                  >
+                    <span className="font-semibold text-zinc-800 dark:text-zinc-200">{block.name}</span>
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono uppercase">{block.category}</span>
+                  </div>
+                ))}
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition cursor-pointer">
-                <FiX size={16} />
-              </button>
-            </div>
-
-            {errorMessage && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-xl text-xs">
-                {errorMessage}
+            ) : (
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase font-semibold text-zinc-400 tracking-wider mb-2">Structure de la page</p>
+                {canvasBlocks.length === 0 ? (
+                  <p className="text-zinc-500 italic">Aucun élément sur le canvas</p>
+                ) : (
+                  canvasBlocks.map((b, idx) => (
+                    <div 
+                      key={b.instanceId} 
+                      onClick={() => setSelectedBlockId(b.instanceId)}
+                      className={`p-2 rounded-lg font-medium flex items-center justify-between cursor-pointer transition ${selectedBlockId === b.instanceId ? 'bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400' : 'bg-zinc-200/50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200'}`}
+                    >
+                      <span>{idx + 1}. {b.name}</span>
+                      <button onClick={(e) => { e.stopPropagation(); removeBlock(b.instanceId); }} className="text-red-500 hover:opacity-80">
+                        <FiTrash2 size={12} />
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             )}
-
-            <form onSubmit={handleCreateProject} className="space-y-4">
-              <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Project Name</label>
-                <input 
-                  type="text" 
-                  value={projectName} 
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="e.g. crystal-night"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-black dark:focus:border-white transition"
-                  required
-                  autoFocus
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-900 transition cursor-pointer">
-                  Cancel
-                </button>
-                <button type="submit" disabled={creating || !projectName.trim()} className="flex-1 py-2.5 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-xs font-semibold hover:opacity-90 transition disabled:opacity-50 cursor-pointer flex items-center justify-center">
-                  {creating ? "Creating..." : "Creer"}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        </aside>
 
-      {/* --- MODALE DE RENOMMAGE --- */}
-      {isRenameModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-2xl space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-zinc-900">
-              <div>
-                <h2 className="text-sm font-bold text-zinc-900 dark:text-white">Rename Project</h2>
-                <p className="text-xs text-zinc-500 mt-0.5">Update your repository name.</p>
+        {/* CENTER CANVAS (Visual Editor & Drag-and-Drop Dropzone) */}
+        <main className="flex-1 bg-zinc-100 dark:bg-zinc-900/40 flex items-center justify-center p-8 overflow-auto relative">
+          <div 
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            className={`transition-all duration-300 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-y-auto flex flex-col relative ${
+              deviceMode === "mobile" ? "w-[375px] h-[667px]" : deviceMode === "tablet" ? "w-[768px] h-[800px]" : "w-full h-full max-w-5xl"
+            }`}
+          >
+            <div className="h-10 border-b border-zinc-200 dark:border-zinc-800 px-4 flex items-center justify-between bg-zinc-50 dark:bg-zinc-950 shrink-0 sticky top-0 z-20">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
               </div>
-              <button onClick={() => setIsRenameModalOpen(false)} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition cursor-pointer">
-                <FiX size={16} />
-              </button>
+              <span className="text-[11px] font-mono text-zinc-400">preview.local/{project?.name?.toLowerCase().replace(/\s+/g, '-')}</span>
+              <div />
             </div>
 
-            <form onSubmit={handleRenameSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-600 dark:text-zinc-400 mb-2">New Name</label>
-                <input 
-                  type="text" 
-                  value={newProjectName} 
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-black dark:focus:border-white transition"
-                  required
-                  autoFocus
-                />
-              </div>
+            <div className="flex-1 flex flex-col w-full min-h-full">
+              {canvasBlocks.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4 p-8">
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-200 dark:border-zinc-800">
+                    <FiPlus size={24} />
+                  </div>
+                  <div className="space-y-1 max-w-sm">
+                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Espace de travail vide</h3>
+                    <p className="text-xs text-zinc-500">Glissez-déposez des blocs UI depuis le panneau de gauche pour composer votre page.</p>
+                  </div>
+                </div>
+              ) : (
+                canvasBlocks.map((block) => (
+                  <div 
+                    key={block.instanceId}
+                    onClick={() => setSelectedBlockId(block.instanceId)}
+                    className={`relative group w-full resize-y overflow-hidden min-h-[80px] border-2 transition-all ${selectedBlockId === block.instanceId ? 'border-amber-500' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`}
+                  >
+                    {/* Bouton de suppression rapide au survol */}
+                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition z-40 bg-zinc-900/80 backdrop-blur-md p-1 rounded-lg">
+                      <button 
+                        onClick={() => removeBlock(block.instanceId)}
+                        className="text-red-400 hover:text-red-300 p-1 cursor-pointer"
+                        title="Supprimer le bloc"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
 
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setIsRenameModalOpen(false)} className="flex-1 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-900 transition cursor-pointer">
-                  Cancel
-                </button>
-                <button type="submit" disabled={!newProjectName.trim()} className="flex-1 py-2.5 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-xs font-semibold hover:opacity-90 transition cursor-pointer flex items-center justify-center">
-                  Save
-                </button>
-              </div>
-            </form>
+                    {/* Poignée de redimensionnement visuelle */}
+                    <div className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize bg-amber-500/50 opacity-0 group-hover:opacity-100 z-30 rounded-tl-sm pointer-events-none"></div>
+
+                    {/* Rendu HTML dynamique du bloc */}
+                    <div 
+                      className="w-full h-full"
+                      dangerouslySetInnerHTML={{ __html: block.code }}
+                    />
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        </main>
 
-      <UniversalModal
-        isOpen={shareModalOpen}
-        onClose={() => setShareModalOpen(false)}
-        title="Project Link Shared"
-        message="The project link has been successfully copied to your clipboard."
-        type="success"
-        confirmText="OK"
-        onConfirm={() => setShareModalOpen(false)}
-      />
+        {/* RIGHT SIDEBAR (Inspector) */}
+        <aside className="w-72 border-l border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col shrink-0 p-4 space-y-6 text-xs">
+          <div>
+            <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-3 flex items-center gap-2">
+              <FiSettings size={14} /> Inspector
+            </h4>
+            <p className="text-[11px] text-zinc-500">Sélectionnez un bloc sur le canvas ou dans l'onglet Layers pour voir ses options.</p>
+          </div>
+
+          <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+            <div>
+              <label className="block text-[10px] uppercase tracking-wider font-semibold text-zinc-400 mb-1.5">Police globale</label>
+              <select className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs outline-none">
+                <option>Inter (Sans-Serif)</option>
+                <option>Playfair (Serif)</option>
+                <option>JetBrains Mono</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] uppercase tracking-wider font-semibold text-zinc-400 mb-1.5">Palette de thèmes</label>
+              <div className="flex gap-2">
+                <button className="w-6 h-6 rounded-full bg-black border border-zinc-700 cursor-pointer" title="Dark Luxe" />
+                <button className="w-6 h-6 rounded-full bg-white border border-zinc-300 cursor-pointer" title="Clean White" />
+                <button className="w-6 h-6 rounded-full bg-amber-500 cursor-pointer" title="Gold Accent" />
+              </div>
+            </div>
+          </div>
+        </aside>
+
+      </div>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { GlassNavbar } from "../../registry/components/GlassNavbar";
+import Navbar from "../components/Navbar";
 
 const projects = [
   {
@@ -44,6 +44,7 @@ const projects = [
 export default function DemoCatalogue() {
   return (
     <main className="min-h-screen bg-white text-black pb-24">
+      <Navbar />
       {/* Hero Header */}
       <header className="pt-40 px-6 max-w-7xl mx-auto mb-24">
         <h1 className="text-[12vw] font-black italic uppercase leading-none tracking-tighter">

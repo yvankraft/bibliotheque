@@ -1,0 +1,7 @@
+export const textRotators = [
+  { id: "text-1", name: "Gradient Text", category: "Text Rotator", code: `<h2 className="font-serif text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 to-zinc-400 dark:from-white dark:to-zinc-600">Le futur du design.</h2>` },
+  { id: "text-2", name: "Gold Highlight", category: "Text Rotator", code: `<h2 className="font-serif text-4xl font-bold text-zinc-900 dark:text-white">Créer sans <span className="text-amber-500 italic">limites</span>.</h2>` },
+  { id: "text-3", name: "Pulse Effect", category: "Text Rotator", code: `<div className="font-sans text-lg font-medium text-zinc-900 dark:text-white flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span> Système opérationnel</div>` },
+  { id: "text-4", name: "Underline Accent", category: "Text Rotator", code: `<h2 className="font-serif text-3xl font-bold text-zinc-900 dark:text-white">Design <span className="relative inline-block"><span className="relative z-10">Intuitif</span><span className="absolute bottom-1 left-0 w-full h-3 bg-amber-500/30 -z-10"></span></span></h2>` },
+  { id: "text-5", name: "Faded Typist (Simulated)", category: "Text Rotator", code: `<h2 className="font-mono text-xl text-zinc-900 dark:text-white border-r-2 border-zinc-900 dark:border-white pr-1 animate-pulse inline-block">Initialisation du système...</h2>` }
+];
