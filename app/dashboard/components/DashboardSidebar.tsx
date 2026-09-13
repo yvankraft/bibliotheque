@@ -29,7 +29,7 @@ export default function DashboardSidebar({ user }: DashboardSidebarProps) {
     await authClient.signOut({
       fetchOptions: {
         onSuccess: () => {
-          router.push("/login");
+          router.push("/auth/login");
         },
       },
     });

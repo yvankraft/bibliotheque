@@ -1,24 +1,45 @@
+// app/project/[id]/page.tsx
+
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/app/api/lib/auth-client";
-import { 
-  FiArrowLeft, FiLayout, FiLayers, FiSettings, FiCode, 
-  FiPlus, FiSmartphone, FiMonitor, FiTablet, FiPlay, FiCopy, FiCheck, FiTrash2, FiChevronRight
-} from "react-icons/fi";
 
-// Import de tous tes blocs UI organisés par catégorie
-import { navbars } from "../../../UI-Blocks/navbars"; 
-import { heroes } from "../../../UI-Blocks/heroes";
-import { buttons } from "../../../UI-Blocks/buttons";
-import { textRotators } from "../../../UI-Blocks/textRotators";
-import { megaMenus } from "../../../UI-Blocks/megaMenus";
-import { productCards } from "../../../UI-Blocks/productCards";
-import { footers } from "../../../UI-Blocks/footers";
-import { textAreas } from "../../../UI-Blocks/textAreas";
-import { gridFeatures } from "../../../UI-Blocks/gridFeatures";
-import { pricingCards } from "../../../UI-Blocks/pricingCards";
+import TopBar from "../components/TopBar";
+import LeftSidebar from "../components/LeftSidebar";
+import Canvas from "../components/Canvas";
+import RightInspector from "../components/RightInspector";
+import FloatingToolbar from "../../components/EditorToolbar"; // ton composant existant
+
+import {
+  navbars,
+  heroes,
+  buttons,
+  textRotators,
+  megaMenus,
+  productCards,
+  footers,
+  textAreas,
+  gridFeatures,
+  pricingCards,
+} from "@/app/UI-Blocks/components";
+
+import {
+  MIN_WIDTH,
+  MIN_HEIGHT,
+  DEFAULT_WIDTH,
+  DEFAULT_HEIGHT,
+} from "../components/types";
+
+import type {
+  ActiveTab,
+  DeviceMode,
+  PageData,
+  PageTheme,
+  UIBlockInstance,
+  UIElement,
+} from "../components/types";
 
 const categories = [
   { name: "Navbars", blocks: navbars },
@@ -41,77 +62,416 @@ export default function ProjectWorkspacePage({ params }: ProjectPageProps) {
   const router = useRouter();
   const { id } = use(params);
 
-  const [user, setUser] = useState<any>(null);
+  // ---------------------------------------------------------
+  // ÉTATS UI
+  // ---------------------------------------------------------
+
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"layers" | "components" | "settings">("components");
-  const [deviceMode, setDeviceMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [, setUserData] = useState<any>(null);
+  const [activeTool, setActiveTool] = useState("cursor");
+
+  const [activeTab, setActiveTab] = useState<ActiveTab>("components");
+  const [deviceMode, setDeviceMode] = useState<DeviceMode>("desktop");
+  const [zoom, setZoom] = useState<number>(100);
   const [copiedCode, setCopiedCode] = useState(false);
-  
-  // État de la catégorie ouverte dans le méga menu latéral
+  const [pageTheme, setPageTheme] = useState<PageTheme>("dark");
+  const [searchQuery, setSearchQuery] = useState("");
   const [openCategory, setOpenCategory] = useState<string | null>("Navbars");
 
-  // États du canvas no-code
-  const [canvasBlocks, setCanvasBlocks] = useState<any[]>([]);
-  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  // ---------------------------------------------------------
+  // ÉTATS MULTI-PAGES
+  // ---------------------------------------------------------
+
+  const [pages, setPages] = useState<PageData[]>([
+    { id: "home", name: "Home", blocks: [] },
+  ]);
+  const [activePageId, setActivePageId] = useState<string>("home");
+
+  const activePage =
+    pages.find((p) => p.id === activePageId) || pages[0];
+  const canvasBlocks = activePage.blocks;
+
+  const setCanvasBlocks = useCallback(
+    (
+      updater:
+        | UIBlockInstance[]
+        | ((prev: UIBlockInstance[]) => UIBlockInstance[])
+    ) => {
+      setPages((prevPages) =>
+        prevPages.map((page) => {
+          if (page.id !== activePageId) return page;
+          const newBlocks =
+            typeof updater === "function" ? updater(page.blocks) : updater;
+          return { ...page, blocks: newBlocks };
+        })
+      );
+    },
+    [activePageId]
+  );
+
+  const handleAddPage = () => {
+    const newId = `page_${Date.now()}`;
+    const newName = `Page ${pages.length + 1}`;
+    setPages([...pages, { id: newId, name: newName, blocks: [] }]);
+    setActivePageId(newId);
+  };
+
+  const handleDeletePage = (pageId: string) => {
+    if (pages.length <= 1) return;
+    const filtered = pages.filter((p) => p.id !== pageId);
+    setPages(filtered);
+    if (activePageId === pageId) setActivePageId(filtered[0].id);
+  };
+
+  // ---------------------------------------------------------
+  // SÉLECTION
+  // ---------------------------------------------------------
+
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(
+    null
+  );
+  const [selectedBlockInstanceId, setSelectedBlockInstanceId] = useState<
+    string | null
+  >(null);
+
+  // ---------------------------------------------------------
+  // REFS INTERACTIONS
+  // ---------------------------------------------------------
+
+  const [draggingBlockId, setDraggingBlockId] = useState<string | null>(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panPosition, setPanPosition] = useState({ x: 0, y: 0 });
+
+  const [resizingState, setResizingState] = useState<{
+    instanceId: string;
+    direction: string;
+    startX: number;
+    startY: number;
+    startWidth: number;
+    startHeight: number;
+    startBlockX: number;
+    startBlockY: number;
+  } | null>(null);
+
+  const panPositionRef = useRef(panPosition);
+  const isPanningRef = useRef(isPanning);
+  const draggingBlockIdRef = useRef(draggingBlockId);
+  const resizingStateRef = useRef(resizingState);
+  const zoomRef = useRef(zoom);
+
+  useEffect(() => {
+    panPositionRef.current = panPosition;
+  }, [panPosition]);
+  useEffect(() => {
+    isPanningRef.current = isPanning;
+  }, [isPanning]);
+  useEffect(() => {
+    draggingBlockIdRef.current = draggingBlockId;
+  }, [draggingBlockId]);
+  useEffect(() => {
+    resizingStateRef.current = resizingState;
+  }, [resizingState]);
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const startPanRef = useRef({ x: 0, y: 0 });
+
+  // ---------------------------------------------------------
+  // AUTH + PROJET
+  // ---------------------------------------------------------
 
   useEffect(() => {
     authClient.getSession().then(({ data }) => {
       if (!data) {
         router.push("/auth/login");
-      } else {
-        setUser(data.user);
-        fetch(`/api/projects`)
-          .then((res) => res.json())
-          .then((projects) => {
-            const current = projects.find((p: any) => p.id === id);
-            setProject(current || { name: "Untitled Project" });
-            setLoading(false);
-          })
-          .catch(() => setLoading(false));
+        return;
       }
+      setUserData(data.user);
+      fetch("/api/projects")
+        .then((res) => res.json())
+        .then((projects) => {
+          setProject(
+            projects.find((p: any) => p.id === id) || {
+              name: "Untitled Project",
+            }
+          );
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
     });
   }, [id, router]);
 
+  // ---------------------------------------------------------
+  // LISTENERS GLOBAUX
+  // ---------------------------------------------------------
+
+  useEffect(() => {
+    const handleMouseMoveWindow = (e: MouseEvent) => {
+      const scale = zoomRef.current / 100;
+      const pan = panPositionRef.current;
+
+      if (isPanningRef.current) {
+        setPanPosition({
+          x: e.clientX - startPanRef.current.x,
+          y: e.clientY - startPanRef.current.y,
+        });
+        return;
+      }
+
+      const rs = resizingStateRef.current;
+      if (rs) {
+        const dx = (e.clientX - rs.startX) / scale;
+        const dy = (e.clientY - rs.startY) / scale;
+
+        setCanvasBlocks((prev) =>
+          prev.map((block) => {
+            if (block.instanceId !== rs.instanceId) return block;
+
+            let newWidth = rs.startWidth;
+            let newHeight = rs.startHeight;
+            let newX = rs.startBlockX;
+            let newY = rs.startBlockY;
+
+            if (rs.direction.includes("e"))
+              newWidth = Math.max(MIN_WIDTH, rs.startWidth + dx);
+            if (rs.direction.includes("s"))
+              newHeight = Math.max(MIN_HEIGHT, rs.startHeight + dy);
+
+            if (rs.direction.includes("w")) {
+              const clampedDx = Math.min(dx, rs.startWidth - MIN_WIDTH);
+              newWidth = rs.startWidth - clampedDx;
+              newX = Math.max(0, rs.startBlockX + clampedDx);
+            }
+            if (rs.direction.includes("n")) {
+              const clampedDy = Math.min(dy, rs.startHeight - MIN_HEIGHT);
+              newHeight = rs.startHeight - clampedDy;
+              newY = Math.max(0, rs.startBlockY + clampedDy);
+            }
+
+            const isVerticalResize =
+              rs.direction.includes("n") || rs.direction.includes("s");
+
+            return {
+              ...block,
+              width: newWidth,
+              height: newHeight,
+              x: newX,
+              y: newY,
+              autoHeight: isVerticalResize ? false : block.autoHeight,
+            };
+          })
+        );
+        return;
+      }
+
+      const dragId = draggingBlockIdRef.current;
+      if (dragId) {
+        const newX = (e.clientX - pan.x) / scale - dragOffsetRef.current.x;
+        const newY = (e.clientY - pan.y) / scale - dragOffsetRef.current.y;
+
+        setCanvasBlocks((prev) =>
+          prev.map((block) =>
+            block.instanceId === dragId
+              ? { ...block, x: Math.max(0, newX), y: Math.max(0, newY) }
+              : block
+          )
+        );
+      }
+    };
+
+    const handleMouseUpWindow = () => {
+      setIsPanning(false);
+      setDraggingBlockId(null);
+      setResizingState(null);
+    };
+
+    window.addEventListener("mousemove", handleMouseMoveWindow);
+    window.addEventListener("mouseup", handleMouseUpWindow);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMoveWindow);
+      window.removeEventListener("mouseup", handleMouseUpWindow);
+    };
+  }, [setCanvasBlocks]);
+
+  // ---------------------------------------------------------
+  // HANDLERS
+  // ---------------------------------------------------------
+
   const handleCopyCode = () => {
-    const fullCode = canvasBlocks.map(b => b.code).join("\n\n");
-    navigator.clipboard.writeText(`// Production-ready Next.js code for ${project?.name}\nexport default function Page() {\n  return (\n    <main className="min-h-screen">\n      ${fullCode}\n    </main>\n  );\n}`);
+    navigator.clipboard.writeText(
+      `// Code généré depuis ${project?.name}\n\nexport default function Page() {\n  return (\n    <main className="min-h-screen relative">\n    </main>\n  );\n}`
+    );
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  // --- LOGIQUE AJOUT & DRAG & DROP ---
-  const addBlockToCanvas = (block: any) => {
-    setCanvasBlocks([...canvasBlocks, { instanceId: Date.now().toString(), ...block }]);
+  const generateUniqueIds = (node: UIElement): UIElement => ({
+    ...node,
+    id: `el_${Math.random().toString(36).substr(2, 9)}`,
+    children: Array.isArray(node.children)
+      ? node.children.map(generateUniqueIds)
+      : node.children,
+  });
+
+  const addBlockToCanvas = (rawBlock: any) => {
+    const newBlock: UIBlockInstance = {
+      instanceId: Date.now().toString(),
+      name: rawBlock.name,
+      category: rawBlock.category,
+      x: 40 + canvasBlocks.length * 20,
+      y: 40 + canvasBlocks.length * 40,
+      width: DEFAULT_WIDTH,
+      height: undefined,
+      autoHeight: true,
+      root: generateUniqueIds(rawBlock.root),
+    };
+
+    setCanvasBlocks([...canvasBlocks, newBlock]);
+    setSelectedBlockInstanceId(newBlock.instanceId);
+    setSelectedElementId(newBlock.root.id);
   };
 
-  const handleDragStart = (e: React.DragEvent, block: any) => {
+  const handleDragStartSidebar = (e: React.DragEvent, block: any) => {
     e.dataTransfer.setData("text/plain", JSON.stringify(block));
-    e.dataTransfer.effectAllowed = "copy";
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDropOnCanvas = (e: React.DragEvent) => {
     e.preventDefault();
     const rawData = e.dataTransfer.getData("text/plain");
-    if (rawData) {
-      try {
-        const block = JSON.parse(rawData);
-        addBlockToCanvas(block);
-      } catch (err) {
-        console.error("Failed to parse dropped block", err);
-      }
+    if (!rawData) return;
+    try {
+      addBlockToCanvas(JSON.parse(rawData));
+    } catch (err) {
+      console.error("Erreur de drop", err);
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleBlockMouseDown = (
+    e: React.MouseEvent,
+    blockInstanceId: string
+  ) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
+    e.stopPropagation();
+    setSelectedBlockInstanceId(blockInstanceId);
+    setDraggingBlockId(blockInstanceId);
+
+    const block = canvasBlocks.find(
+      (b) => b.instanceId === blockInstanceId
+    );
+    if (!block) return;
+
+    const scale = zoom / 100;
+    const pan = panPositionRef.current;
+
+    dragOffsetRef.current = {
+      x: (e.clientX - pan.x) / scale - block.x,
+      y: (e.clientY - pan.y) / scale - block.y,
+    };
+  };
+
+  const handleResizeMouseDown = (
+    e: React.MouseEvent,
+    instanceId: string,
+    direction: string
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const block = canvasBlocks.find((b) => b.instanceId === instanceId);
+    if (!block) return;
+
+    const blockEl = (e.currentTarget as HTMLElement).closest(
+      "[data-block-id]"
+    ) as HTMLElement | null;
+
+    setSelectedBlockInstanceId(instanceId);
+    setResizingState({
+      instanceId,
+      direction,
+      startX: e.clientX,
+      startY: e.clientY,
+      startWidth: block.width ?? blockEl?.offsetWidth ?? DEFAULT_WIDTH,
+      startHeight: blockEl?.offsetHeight ?? block.height ?? DEFAULT_HEIGHT,
+      startBlockX: block.x,
+      startBlockY: block.y,
+    });
+  };
+
+  const handleMouseDownCanvasBg = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.id !== "canvas-bg") return;
+
+    setIsPanning(true);
+    startPanRef.current = {
+      x: e.clientX - panPositionRef.current.x,
+      y: e.clientY - panPositionRef.current.y,
+    };
+    setSelectedElementId(null);
+    setSelectedBlockInstanceId(null);
   };
 
   const removeBlock = (instanceId: string) => {
-    setCanvasBlocks(canvasBlocks.filter(b => b.instanceId !== instanceId));
-    if (selectedBlockId === instanceId) setSelectedBlockId(null);
+    setCanvasBlocks((prev) =>
+      prev.filter((b) => b.instanceId !== instanceId)
+    );
+    setSelectedElementId(null);
+    setSelectedBlockInstanceId(null);
   };
+
+  const findElement = (
+    nodes: UIElement[],
+    id: string
+  ): UIElement | null => {
+    for (const node of nodes) {
+      if (node.id === id) return node;
+      if (Array.isArray(node.children)) {
+        const found = findElement(node.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const updateElementInTree = (
+    nodes: UIElement[],
+    id: string,
+    updates: Partial<UIElement>
+  ): UIElement[] =>
+    nodes.map((node) => {
+      if (node.id === id) return { ...node, ...updates };
+      if (Array.isArray(node.children)) {
+        return {
+          ...node,
+          children: updateElementInTree(node.children, id, updates),
+        };
+      }
+      return node;
+    });
+
+  const handleUpdateSelected = (updates: Partial<UIElement>) => {
+    if (!selectedElementId) return;
+    setCanvasBlocks((prev) =>
+      prev.map((block) => ({
+        ...block,
+        root: updateElementInTree([block.root], selectedElementId, updates)[0],
+      }))
+    );
+  };
+
+  const activeElement = selectedElementId
+    ? findElement(
+        canvasBlocks.map((b) => b.root),
+        selectedElementId
+      )
+    : null;
+
+  // ---------------------------------------------------------
+  // LOADING
+  // ---------------------------------------------------------
 
   if (loading) {
     return (
@@ -121,254 +481,82 @@ export default function ProjectWorkspacePage({ params }: ProjectPageProps) {
     );
   }
 
+  // ---------------------------------------------------------
+  // RENDER
+  // ---------------------------------------------------------
+
   return (
-    <div className="h-screen w-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex flex-col select-none transition-colors duration-300">
-      
-      {/* --- TOP NAVBAR --- */}
-      <header className="h-14 px-4 border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md flex items-center justify-between shrink-0 z-30">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => router.push("/dashboard")}
-            className="p-2 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition cursor-pointer"
-            title="Back to Dashboard"
-          >
-            <FiArrowLeft size={16} />
-          </button>
-          <div className="h-4 w-[1px] bg-zinc-200 dark:bg-zinc-800" />
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <h1 className="text-xs font-semibold tracking-wide text-zinc-800 dark:text-zinc-200">{project?.name || "Project Workspace"}</h1>
-          </div>
-        </div>
+    <div className="h-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex flex-col select-none transition-colors duration-300">
+      <TopBar
+        projectName={project?.name || "Workspace"}
+        deviceMode={deviceMode}
+        setDeviceMode={setDeviceMode}
+        zoom={zoom}
+        setZoom={setZoom}
+        pageTheme={pageTheme}
+        toggleTheme={() =>
+          setPageTheme((p) => (p === "dark" ? "light" : "dark"))
+        }
+        copiedCode={copiedCode}
+        onCopyCode={handleCopyCode}
+        onPublish={() => alert("Publication activée !")}
+        onBack={() => router.push("/dashboard")}
+      />
 
-        {/* Device Switcher */}
-        <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 p-1 rounded-xl border border-zinc-200 dark:border-zinc-800">
-          <button 
-            onClick={() => setDeviceMode("desktop")}
-            className={`p-1.5 rounded-lg transition cursor-pointer ${deviceMode === "desktop" ? "bg-white dark:bg-black text-black dark:text-white shadow-sm" : "text-zinc-400 hover:text-zinc-600"}`}
-            title="Desktop View"
-          >
-            <FiMonitor size={14} />
-          </button>
-          <button 
-            onClick={() => setDeviceMode("tablet")}
-            className={`p-1.5 rounded-lg transition cursor-pointer ${deviceMode === "tablet" ? "bg-white dark:bg-black text-black dark:text-white shadow-sm" : "text-zinc-400 hover:text-zinc-600"}`}
-            title="Tablet View"
-          >
-            <FiTablet size={14} />
-          </button>
-          <button 
-            onClick={() => setDeviceMode("mobile")}
-            className={`p-1.5 rounded-lg transition cursor-pointer ${deviceMode === "mobile" ? "bg-white dark:bg-black text-black dark:text-white shadow-sm" : "text-zinc-400 hover:text-zinc-600"}`}
-            title="Mobile View"
-          >
-            <FiSmartphone size={14} />
-          </button>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleCopyCode}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
-          >
-            {copiedCode ? <FiCheck size={14} className="text-emerald-500" /> : <FiCopy size={14} />}
-            <span>{copiedCode ? "Copied" : "Export Code"}</span>
-          </button>
-          <button
-            onClick={() => alert("Preview mode activated!")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black dark:bg-white text-white dark:text-black text-xs font-semibold hover:opacity-90 transition cursor-pointer"
-          >
-            <FiPlay size={13} />
-            <span>Publish</span>
-          </button>
-        </div>
-      </header>
-
-      {/* --- MAIN WORKSPACE LAYOUT --- */}
       <div className="flex-1 flex overflow-hidden">
-        
-        {/* LEFT SIDEBAR : MÉGA MENU LATÉRAL DE COMPOSANTS */}
-        <aside className="w-80 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col shrink-0">
-          <div className="flex border-b border-zinc-200 dark:border-zinc-800 p-2 gap-1">
-            <button
-              onClick={() => setActiveTab("components")}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${activeTab === "components" ? "bg-white dark:bg-zinc-900 text-black dark:text-white shadow-sm" : "text-zinc-500 hover:text-zinc-900"}`}
-            >
-              <FiLayout size={13} />
-              <span>UI Library</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("layers")}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${activeTab === "layers" ? "bg-white dark:bg-zinc-900 text-black dark:text-white shadow-sm" : "text-zinc-500 hover:text-zinc-900"}`}
-            >
-              <FiLayers size={13} />
-              <span>Layers</span>
-            </button>
-          </div>
+        <LeftSidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          openCategory={openCategory}
+          setOpenCategory={setOpenCategory}
+          categories={categories}
+          canvasBlocks={canvasBlocks}
+          onDragStartSidebar={handleDragStartSidebar}
+          onAddBlock={addBlockToCanvas}
+          onRemoveBlock={removeBlock}
+          onSelectBlock={(b) => {
+            setSelectedBlockInstanceId(b.instanceId);
+            setSelectedElementId(b.root.id);
+          }}
+        />
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-2 text-xs">
-            {activeTab === "components" ? (
-              <div className="space-y-2">
-                <p className="text-[10px] uppercase font-semibold text-zinc-400 tracking-wider px-2 mb-3">Explorez & Glissez</p>
-                
-                {/* Accordéon de catégories type Méga Menu */}
-                {categories.map((cat) => (
-                  <div key={cat.name} className="border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
-                    <button
-                      onClick={() => setOpenCategory(openCategory === cat.name ? null : cat.name)}
-                      className="w-full px-4 py-3 flex items-center justify-between font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition cursor-pointer"
-                    >
-                      <span>{cat.name}</span>
-                      <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full text-zinc-500 flex items-center gap-1">
-                        {cat.blocks.length} <FiChevronRight size={10} className={`transform transition-transform ${openCategory === cat.name ? 'rotate-90' : ''}`} />
-                      </span>
-                    </button>
+        <div className="flex-1 relative flex flex-col overflow-hidden">
+          <Canvas
+            deviceMode={deviceMode}
+            pageTheme={pageTheme}
+            zoom={zoom}
+            panPosition={panPosition}
+            activePage={activePage}
+            canvasBlocks={canvasBlocks}
+            selectedElementId={selectedElementId}
+            selectedBlockInstanceId={selectedBlockInstanceId}
+            isPanning={isPanning}
+            onCanvasMouseDown={handleMouseDownCanvasBg}
+            onCanvasDrop={handleDropOnCanvas}
+            onBlockMouseDown={handleBlockMouseDown}
+            onResizeMouseDown={handleResizeMouseDown}
+            onRemoveBlock={removeBlock}
+            onSelectElement={setSelectedElementId}
+          />
 
-                    {/* Liste des blocs de la catégorie avec aperçu miniature */}
-                    {openCategory === cat.name && (
-                      <div className="p-3 bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
-                        {cat.blocks.map((block) => (
-                          <div
-                            key={block.id}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, block)}
-                            onClick={() => addBlockToCanvas(block)}
-                            className="group p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-amber-500 dark:hover:border-amber-500 transition cursor-grab active:cursor-grabbing space-y-2 shadow-xs"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-semibold text-zinc-900 dark:text-zinc-100">{block.name}</span>
-                              <span className="text-[10px] text-amber-500 opacity-0 group-hover:opacity-100 transition">+ Ajouter</span>
-                            </div>
-                            
-                            {/* Miniature de prévisualisation clippée */}
-                            <div className="w-full h-20 bg-zinc-100 dark:bg-black rounded border border-zinc-200 dark:border-zinc-800 overflow-hidden relative pointer-events-none scale-50 origin-top-left w-[200%] h-[160%]">
-                              <div className="absolute inset-0 transform scale-50" dangerouslySetInnerHTML={{ __html: block.code }} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase font-semibold text-zinc-400 tracking-wider mb-2">Structure de la page</p>
-                {canvasBlocks.length === 0 ? (
-                  <p className="text-zinc-500 italic p-2">Aucun élément sur le canvas</p>
-                ) : (
-                  canvasBlocks.map((b, idx) => (
-                    <div 
-                      key={b.instanceId} 
-                      onClick={() => setSelectedBlockId(b.instanceId)}
-                      className={`p-2 rounded-lg font-medium flex items-center justify-between cursor-pointer transition ${selectedBlockId === b.instanceId ? 'bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400' : 'bg-zinc-200/50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200'}`}
-                    >
-                      <span>{idx + 1}. {b.name}</span>
-                      <button onClick={(e) => { e.stopPropagation(); removeBlock(b.instanceId); }} className="text-red-500 hover:opacity-80">
-                        <FiTrash2 size={12} />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        </aside>
+          <FloatingToolbar
+            activeTool={activeTool}
+            setActiveTool={setActiveTool}
+            pages={pages}
+            activePageId={activePageId}
+            onSelectPage={setActivePageId}
+            onAddPage={handleAddPage}
+            onDeletePage={handleDeletePage}
+          />
+        </div>
 
-        {/* CENTER CANVAS (Drop Zone & Live Preview) */}
-        <main className="flex-1 bg-zinc-100 dark:bg-zinc-900/40 flex items-center justify-center p-8 overflow-auto relative">
-          <div 
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            className={`transition-all duration-300 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-y-auto flex flex-col relative ${
-              deviceMode === "mobile" ? "w-[375px] h-[667px]" : deviceMode === "tablet" ? "w-[768px] h-[800px]" : "w-full h-full max-w-5xl"
-            }`}
-          >
-            <div className="h-10 border-b border-zinc-200 dark:border-zinc-800 px-4 flex items-center justify-between bg-zinc-50 dark:bg-zinc-950 shrink-0 sticky top-0 z-20">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-              </div>
-              <span className="text-[11px] font-mono text-zinc-400">preview.local/{project?.name?.toLowerCase().replace(/\s+/g, '-')}</span>
-              <div />
-            </div>
-
-            <div className="flex-1 flex flex-col w-full min-h-full">
-              {canvasBlocks.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4 p-8">
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-200 dark:border-zinc-800">
-                    <FiPlus size={24} />
-                  </div>
-                  <div className="space-y-1 max-w-sm">
-                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Espace de travail vide</h3>
-                    <p className="text-xs text-zinc-500">Cliquez ou glissez-déposez des blocs depuis le méga menu de gauche pour composer votre page.</p>
-                  </div>
-                </div>
-              ) : (
-                canvasBlocks.map((block) => (
-                  <div 
-                    key={block.instanceId}
-                    onClick={() => setSelectedBlockId(block.instanceId)}
-                    className={`relative group w-full resize-y overflow-hidden min-h-[80px] border-2 transition-all ${selectedBlockId === block.instanceId ? 'border-amber-500' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`}
-                  >
-                    {/* Bouton de suppression rapide au survol */}
-                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition z-40 bg-zinc-900/80 backdrop-blur-md p-1 rounded-lg">
-                      <button 
-                        onClick={() => removeBlock(block.instanceId)}
-                        className="text-red-400 hover:text-red-300 p-1 cursor-pointer"
-                        title="Supprimer le bloc"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-
-                    {/* Poignée de redimensionnement en bas à droite */}
-                    <div className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize bg-amber-500/50 opacity-0 group-hover:opacity-100 z-30 rounded-tl-sm pointer-events-none"></div>
-
-                    {/* Rendu dynamique du composant */}
-                    <div 
-                      className="w-full h-full"
-                      dangerouslySetInnerHTML={{ __html: block.code }}
-                    />
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </main>
-
-        {/* RIGHT SIDEBAR (Inspector) */}
-        <aside className="w-72 border-l border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col shrink-0 p-4 space-y-6 text-xs">
-          <div>
-            <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-3 flex items-center gap-2">
-              <FiSettings size={14} /> Inspector
-            </h4>
-            <p className="text-[11px] text-zinc-500">Sélectionnez un bloc sur le canvas ou dans l'onglet Layers pour voir ses options.</p>
-          </div>
-
-          <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-            <div>
-              <label className="block text-[10px] uppercase tracking-wider font-semibold text-zinc-400 mb-1.5">Police globale</label>
-              <select className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs outline-none">
-                <option>Inter (Sans-Serif)</option>
-                <option>Playfair (Serif)</option>
-                <option>JetBrains Mono</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[10px] uppercase tracking-wider font-semibold text-zinc-400 mb-1.5">Palette de thèmes</label>
-              <div className="flex gap-2">
-                <button className="w-6 h-6 rounded-full bg-black border border-zinc-700 cursor-pointer" title="Dark Luxe" />
-                <button className="w-6 h-6 rounded-full bg-white border border-zinc-300 cursor-pointer" title="Clean White" />
-                <button className="w-6 h-6 rounded-full bg-amber-500 cursor-pointer" title="Gold Accent" />
-              </div>
-            </div>
-          </div>
-        </aside>
-
+        <RightInspector
+          activeElement={activeElement}
+          zoom={zoom}
+          onUpdateSelected={handleUpdateSelected}
+        />
       </div>
     </div>
   );

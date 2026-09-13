@@ -75,15 +75,15 @@ export default function TrashPage() {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex transition-colors duration-300">
+    <div className="h-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex transition-colors duration-300">
       <DashboardSidebar user={user} />
       
-      <main className="flex-1 h-full overflow-y-auto flex flex-col bg-white dark:bg-black relative">
+      <main className="flex-1 h-full flex flex-col bg-white dark:bg-black relative">
         <header className="sticky top-0 z-30 min-h-[4rem] h-16 px-8 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md shrink-0">
           <h1 className="text-sm font-semibold tracking-wide text-zinc-800 dark:text-zinc-200">Overview / Trash</h1>
         </header>
 
-        <div className="p-8 space-y-6 max-w-4xl mx-auto w-full">
+        <div className="p-8 space-y-6 w-full">
           <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs flex items-center gap-3">
             <FiAlertTriangle size={18} className="shrink-0" />
             <span>Items in the trash can be restored or permanently deleted at any time.</span>

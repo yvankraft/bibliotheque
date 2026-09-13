@@ -45,7 +45,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex transition-colors duration-300">
+    <div className="h-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex transition-colors duration-300">
       
       {/* Sidebar fixe */}
       <DashboardSidebar user={user} />
@@ -59,7 +59,7 @@ export default function SettingsPage() {
         </header>
 
         {/* Contenu principal */}
-        <div className="p-8 max-w-4xl space-y-8 w-full pb-16">
+        <div className="p-8 space-y-8 w-full pb-16">
           
           {success && (
             <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs flex items-center gap-2">

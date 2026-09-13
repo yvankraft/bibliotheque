@@ -59,8 +59,7 @@ const Navbar = () => {
 
       {/* Actions (Bouton Connexion/Dashboard + Recherche mobile + Burger) */}
       <div className="flex items-center gap-3">
-        {/* Bouton Dynamique Connexion / Dashboard (Desktop & Tablette) */}
-        {!loading && (
+      
           <div className="hidden sm:block">
             {user ? (
               <Link href="/dashboard">
@@ -78,7 +77,7 @@ const Navbar = () => {
               </Link>
             )}
           </div>
-        )}
+       
 
         {/* Recherche Mobile */}
         <div className="relative md:hidden flex items-center">

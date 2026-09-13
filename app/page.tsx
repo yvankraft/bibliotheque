@@ -18,7 +18,7 @@ const Page = () => {
         </p>
         <div className="flex flex-wrap justify-center items-center gap-4">
           <Tooltip text="launch the visual editor and manage projects">
-            <Link href="/dashboard">
+            <Link href="/auth/login">
               <span className="px-6 py-3 rounded-lg bg-slate-500 text-white font-semibold hover:bg-slate-600 transition">
                 Get Started
               </span>

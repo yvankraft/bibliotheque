@@ -34,7 +34,7 @@ export default function TemplatesPage() {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex transition-colors duration-300">
+    <div className="h-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex transition-colors duration-300">
       <DashboardSidebar user={user} />
       
       <main className="flex-1 h-full overflow-y-auto flex flex-col bg-white dark:bg-black relative">
@@ -42,7 +42,7 @@ export default function TemplatesPage() {
           <h1 className="text-sm font-semibold tracking-wide text-zinc-800 dark:text-zinc-200">Overview / Templates</h1>
         </header>
 
-        <div className="p-8 space-y-6 max-w-5xl mx-auto w-full">
+        <div className="p-8 space-y-6 w-full">
           <div>
             <h2 className="text-base font-serif font-bold text-zinc-900 dark:text-zinc-100">Starter Templates</h2>
             <p className="text-xs text-zinc-500">Pick a template to instantly generate production-ready code.</p>

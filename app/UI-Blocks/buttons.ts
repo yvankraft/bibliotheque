@@ -1,7 +1,18 @@
+import CategoryPage from "../composants/[category]/page";
+
 export const buttons = [
-  { id: "btn-1", name: "Solid Invert", category: "Button", code: `<button className="px-6 py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-sans text-sm font-semibold hover:scale-[1.02] active:scale-95 transition-all shadow-md">Bouton Principal</button>` },
-  { id: "btn-2", name: "Gold Outline", category: "Button", code: `<button className="px-6 py-3 rounded-none border border-amber-500 text-amber-500 font-sans text-xs uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-colors duration-300">Découvrir</button>` },
-  { id: "btn-3", name: "Minimal Underline", category: "Button", code: `<button className="text-sm font-sans font-semibold text-zinc-900 dark:text-white pb-1 border-b-2 border-zinc-900 dark:border-white hover:text-zinc-500 hover:border-zinc-500 transition-colors">En savoir plus</button>` },
-  { id: "btn-4", name: "Glass Glow", category: "Button", code: `<button className="px-6 py-3 rounded-full bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-700/50 text-zinc-900 dark:text-white font-sans text-sm shadow-[0_0_15px_rgba(0,0,0,0.1)] dark:shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:bg-white/20 dark:hover:bg-zinc-800 transition">Contactez-nous</button>` },
-  { id: "btn-5", name: "Icon Pill", category: "Button", code: `<button className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 font-sans text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition"><svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Continuer</button>` }
+  {
+  id: "btn-1",
+  type: "button",
+  content: "Cliquez",
+  category: "Button",
+  name: "Solid Black",
+  styles: { backgroundColor: "black", color: "white", padding: "12px 24px" }
+  },
+
+  { id: "btn-2", name: "Gold Outline", content: "Cliquez",
+    category: "Button", styles: { padding: "12px 24px", border: "1px solid #f59e0b", color: "#f59e0b", fontFamily: "sans-serif", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.1em", borderRadius: "0", backgroundColor: "transparent", hover: { backgroundColor: "#f59e0b", color: "black" }, transition: "all 0.3s ease" } },
+  { id: "btn-3", name: "Minimal Underline", category: "Button", content: "Cliquez", styles:{ textDecoration: "underline", fontSize: "12px", fontFamily: "sans-serif", fontWeight: "600", color: "#18181b", paddingBottom: "4px", borderBottom: "2px solid #18181b", hover: { color: "#71717a", borderBottomColor: "#71717a" }, transition: "color 0.3s ease, border-bottom-color 0.3s ease" } },
+  { id: "btn-4", name: "Glass Glow", category: "Button", content: "Cliquez", styles: { padding: "12px 24px", borderRadius: "9999px", backgroundColor: "rgba(255, 255, 255, 0.1)", backdropFilter: "blur(10px)", border: "1px solid rgba(229, 231, 235, 0.5)", color: "#18181b", fontFamily: "sans-serif", fontSize: "12px", boxShadow: "0 0 15px rgba(0,0,0,0.1)", hover: { backgroundColor: "rgba(255, 255, 255, 0.2)" }, transition: "all 0.3s ease" } },
+  { id: "btn-5", name: "Icon Pill", category: "Button", content:"Cliquez", styles: { display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", borderRadius: "9999px", backgroundColor: "#f3f4f6", border: "1px solid #e5e7eb", color: "#18181b", fontFamily: "sans-serif", fontSize: "12px", hover: { backgroundColor: "#e5e7eb" }, transition: "all 0.3s ease" } }
 ];
