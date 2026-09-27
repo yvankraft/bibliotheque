@@ -1,176 +1,164 @@
 "use client";
 import { motion, Variants } from "framer-motion";
+import Link from "next/link";
+import { FiGithub, FiTwitter, FiYoutube } from "react-icons/fi";
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15 },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] },
+  },
+};
+
+const footerLinks = [
+  {
+    title: "Product",
+    links: [
+      { label: "Components", href: "/composants" },
+      { label: "Documentation", href: "/documentation" },
+      { label: "Demo", href: "/Demo" },
+      { label: "Templates", href: "/dashboard/templates" },
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
+      { label: "GitHub", href: "https://github.com/yvankraft/bibliotheque" },
+      { label: "Get started", href: "/auth/signup" },
+      { label: "Sign in", href: "/auth/login" },
+    ],
+  },
+];
+
+const socials = [
+  {
+    label: "GitHub",
+    href: "https://github.com/yvankraft/bibliotheque",
+    icon: FiGithub,
+  },
+  { label: "Twitter", href: "#", icon: FiTwitter },
+  { label: "YouTube", href: "#", icon: FiYoutube },
+];
 
 export default function Footer() {
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2,
-      },
-    },
-  };
-
-  const dropInBounceVariants: Variants = {
-    hidden: { opacity: 0, y: -120, scale: 0.9 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 18,
-      },
-    },
-  };
-
-  const cardPopupVariants: Variants = {
-    hidden: { opacity: 0, scale: 0.6, y: 50 },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      transition: {
-        duration: 0.8,
-        ease: [0.16, 1, 0.3, 1],
-      },
-    },
-  };
-
   return (
-    <div className="w-full mt-10 relative">
-      <div className="flex justify-center items-center w-full -mb-20 px-4">
+    <div className="w-full mt-10">
+      {/* Carte newsletter */}
+      <div className="flex justify-center items-center w-full px-4">
         <motion.div
-          variants={cardPopupVariants}
+          variants={containerVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.5 }}
-          className="bg-zinc-900 dark:bg-zinc-950 border border-zinc-800 p-10 md:p-16 text-white shadow-2xl max-w-4xl relative overflow-hidden rounded-2xl"
+          viewport={{ once: true, amount: 0.4 }}
+          className="relative overflow-hidden w-full max-w-4xl rounded-3xl border border-zinc-800 bg-zinc-950 p-10 md:p-16 text-white shadow-2xl"
         >
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.5 }}
-            className="relative z-10 max-w-xl mx-auto text-center"
-          >
+          {/* Halo décoratif */}
+          <div
+            aria-hidden
+            className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-slate-500/20 blur-3xl rounded-full pointer-events-none"
+          />
+
+          <div className="relative z-10 max-w-xl mx-auto text-center">
             <motion.h2
-              variants={dropInBounceVariants}
-              className="font-serif text-2xl md:text-3xl font-bold uppercase tracking-wider text-white"
+              variants={itemVariants}
+              className="text-2xl md:text-3xl font-extrabold tracking-tight"
             >
-              Abonnez-vous à notre newsletter
+              Stay in the loop
             </motion.h2>
 
             <motion.p
-              variants={dropInBounceVariants}
-              className="text-zinc-400 text-xs md:text-sm mt-3"
+              variants={itemVariants}
+              className="text-zinc-400 text-sm mt-3"
             >
-              Abonnez-vous à notre newsletter pour recevoir les dernières mises à jour de Library.
+              Subscribe to the newsletter to get the latest Library updates and
+              new components.
             </motion.p>
 
             <motion.form
-              variants={dropInBounceVariants}
+              variants={itemVariants}
               onSubmit={(e) => e.preventDefault()}
               className="mt-8 flex flex-col sm:flex-row gap-3 justify-center"
             >
               <input
                 type="email"
-                placeholder="Votre email"
-                className="bg-zinc-800/80 border border-zinc-700 px-6 py-3 text-white placeholder-zinc-500 text-xs focus:outline-none focus:border-zinc-500 rounded-xl w-full sm:w-80 transition-colors"
+                required
+                placeholder="Your email"
+                aria-label="Email address"
+                className="bg-zinc-800/80 border border-zinc-700 px-5 py-3 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-zinc-500 rounded-xl w-full sm:w-80 transition-colors"
               />
               <button
                 type="submit"
-                className="bg-white text-black hover:bg-zinc-200 font-semibold px-6 py-3 text-xs rounded-xl transition-all shadow-md cursor-pointer"
+                className="bg-white text-zinc-900 hover:bg-zinc-200 font-semibold px-6 py-3 text-sm rounded-xl transition active:scale-95 cursor-pointer"
               >
-                S'abonner
+                Subscribe
               </button>
             </motion.form>
-          </motion.div>
+          </div>
         </motion.div>
       </div>
 
-      <footer className="footer sm:footer-horizontal bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 p-10 border-t border-zinc-200 dark:border-zinc-900 mt-16 text-xs">
-        <nav>
-          <h6 className="footer-title text-black dark:text-white uppercase tracking-wider">Services</h6>
-          <a className="link link-hover">Branding</a>
-          <a className="link link-hover">Design</a>
-          <a className="link link-hover">Marketing</a>
-          <a className="link link-hover">Advertisement</a>
-        </nav>
-        <nav>
-          <h6 className="footer-title text-black dark:text-white uppercase tracking-wider">Library</h6>
-          <a className="link link-hover">About us</a>
-          <a className="link link-hover">Contact</a>
-          <a className="link link-hover">Jobs</a>
-          <a className="link link-hover">Press kit</a>
-        </nav>
-        <nav>
-          <h6 className="footer-title text-black dark:text-white uppercase tracking-wider">Legal</h6>
-          <a className="link link-hover">Terms of use</a>
-          <a className="link link-hover">Privacy policy</a>
-          <a className="link link-hover">Cookie policy</a>
-        </nav>
-      </footer>
-
-       <footer className="footer sm:footer-horizontal text-base flex justify-between p-10 bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400">
-        <aside>
-          <svg
-            width="50"
-            height="50"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            fillRule="evenodd"
-            clipRule="evenodd"
-            className="fill-current"
-          >
-            <path d="M22.672 15.226l-2.432.811.841 2.515c.33 1.019-.209 2.127-1.23 2.456-1.15.325-2.148-.321-2.463-1.226l-.84-2.518-5.013 1.677.84 2.517c.391 1.203-.434 2.542-1.831 2.542-.88 0-1.601-.564-1.86-1.314l-.842-2.516-2.431.809c-1.135.328-2.145-.317-2.463-1.229-.329-1.018.211-2.127 1.231-2.456l2.432-.809-1.621-4.823-2.432.808c-1.355.384-2.558-.59-2.558-1.839 0-.817.509-1.582 1.327-1.846l2.433-.809-.842-2.515c-.33-1.02.211-2.129 1.232-2.458 1.02-.329 2.13.209 2.461 1.229l.842 2.515 5.011-1.677-.839-2.517c-.403-1.238.484-2.553 1.843-2.553.819 0 1.585.509 1.85 1.326l.841 2.517 2.431-.81c1.02-.33 2.131.211 2.461 1.229.332 1.018-.21 2.126-1.23 2.456l-2.433.809 1.622 4.823 2.433-.809c1.242-.401 2.557.484 2.557 1.838 0 .819-.51 1.583-1.328 1.847m-8.992-6.428l-5.01 1.675 1.619 4.828 5.011-1.674-1.62-4.829z"></path>
-          </svg>
-          <p>
-            Library
-            <br />
-            Reinventing No-Code
-          </p>
-        </aside>
-        <nav>
-          <h6 className="footer-title">Social</h6>
-          <div className="grid grid-flow-col gap-4">
-            <a>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                className="fill-current"
-              >
-                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"></path>
-              </svg>
-            </a>
-            <a>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                className="fill-current"
-              >
-                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
-              </svg>
-            </a>
-            <a>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                className="fill-current"
-              >
-                <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"></path>
-              </svg>
-            </a>
+      {/* Footer principal */}
+      <footer className="mt-16 border-t border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950">
+        <div className="max-w-6xl mx-auto px-6 py-14 grid grid-cols-2 md:grid-cols-4 gap-10">
+          <div className="col-span-2 space-y-4">
+            <p className="font-extrabold tracking-tight text-lg text-zinc-900 dark:text-white">
+              Library
+            </p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xs leading-relaxed">
+              Visual web builder for developers. Design visually, export
+              production-ready code.
+            </p>
+            <div className="flex gap-2 pt-1">
+              {socials.map((social) => {
+                const Icon = social.icon;
+                return (
+                  <a
+                    key={social.label}
+                    href={social.href}
+                    aria-label={social.label}
+                    className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-400 dark:hover:border-zinc-600 transition"
+                  >
+                    <Icon size={16} />
+                  </a>
+                );
+              })}
+            </div>
           </div>
-        </nav>
+
+          {footerLinks.map((group) => (
+            <nav key={group.title} className="flex flex-col gap-3">
+              <h6 className="text-xs font-bold uppercase tracking-widest text-zinc-900 dark:text-white">
+                {group.title}
+              </h6>
+              {group.links.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition w-fit"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          ))}
+        </div>
+
+        <div className="border-t border-zinc-200 dark:border-zinc-900">
+          <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-400 dark:text-zinc-500">
+            <p>© {new Date().getFullYear()} Library. All rights reserved.</p>
+            <p className="font-mono">Reinventing no-code for engineers.</p>
+          </div>
+        </div>
       </footer>
     </div>
   );

@@ -3,16 +3,39 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./db";
 import nodemailer from "nodemailer";
 
-// Configuration du transporteur pour l'envoi d'emails avec Nodemailer
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || "465"),
-  secure: true,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
+// Configuration du transporteur pour l'envoi d'emails avec Nodemailer.
+// SMTP_HOST absent → transporter nul (dev sans serveur mail).
+const transporter = process.env.SMTP_HOST
+  ? nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || "465"),
+    secure: true,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD,
+    },
+  })
+  : null;
+
+interface MailOptions {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+}
+
+/** Envoie un email, ou logge le lien d'action en console si SMTP absent. */
+async function sendMail(opts: MailOptions) {
+  if (!transporter) {
+    console.warn(
+      `[mail] SMTP_HOST non configuré — email non envoyé : "${opts.subject}" → ${opts.to}`,
+    );
+    const link = opts.html.match(/href="([^"]+)"/)?.[1];
+    if (link) console.log(`[mail] Lien d'action : ${link}`);
+    return;
+  }
+  await transporter.sendMail(opts);
+}
 
 const emailFooter = `
   <div style="margin-top: 40px; border-top: 1px solid #333; padding-top: 20px; text-align: center; color: #888; font-family: sans-serif; font-size: 12px;">
@@ -61,6 +84,27 @@ export const auth = betterAuth({
   appName: "Visual Web Builder",
   allowSubDomains: true,
 
+  // En dev on fait confiance à n'importe quel port loopback
+  // (Next choisit parfois 3001/3002 si 3000 est occupé) ;
+  // en prod, seule l'origine configurée est acceptée.
+  trustedOrigins: (request?: Request) => {
+    const origins = new Set<string>();
+    if (process.env.BETTER_AUTH_URL) {
+      try {
+        origins.add(new URL(process.env.BETTER_AUTH_URL).origin);
+      } catch {
+        // URL invalide dans l'env
+      }
+    }
+    if (process.env.NODE_ENV !== "production") {
+      const origin = request?.headers.get("origin");
+      if (origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        origins.add(origin);
+      }
+    }
+    return [...origins];
+  },
+
   emailAndPassword: {
     enabled: true,
     revokeSessionsOnPasswordReset: true,
@@ -82,7 +126,7 @@ export const auth = betterAuth({
       <p>If this was you, please try signing in instead.</p>
       <p>If you did not initiate this request, you can safely ignore this email.</p>`;
 
-      await transporter.sendMail({
+      await sendMail({
         from: `"Visual Web Builder" <${process.env.SMTP_USER}>`,
         to: user.email,
         subject: subject,
@@ -121,7 +165,7 @@ export const auth = betterAuth({
 
       const t = content[lang];
 
-      await transporter.sendMail({
+      await sendMail({
         from: `"Visual Web Builder" <${process.env.SMTP_USER}>`,
         to: user.email,
         subject: t.subject,
@@ -161,7 +205,7 @@ export const auth = betterAuth({
 
       const t = content[lang];
 
-      await transporter.sendMail({
+      await sendMail({
         from: `"Visual Web Builder" <${process.env.SMTP_USER}>`,
         to: user.email,
         subject: t.subject,
@@ -202,7 +246,7 @@ export const auth = betterAuth({
 
       const t = content[lang];
 
-      await transporter.sendMail({
+      await sendMail({
         from: `"Visual Web Builder" <${process.env.SMTP_USER}>`,
         to: user.email,
         subject: t.subject,
@@ -274,7 +318,7 @@ export const auth = betterAuth({
 
         const t = content[lang];
 
-        await transporter.sendMail({
+        await sendMail({
           from: `"Visual Web Builder" <${process.env.SMTP_USER}>`,
           to: newEmail,
           subject: t.subject,

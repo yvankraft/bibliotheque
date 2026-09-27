@@ -1,32 +1,33 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen dark:bg-zinc-950 px-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 px-4">
       <div className="text-center">
-        {/* Un gros badge ou un nombre stylisé */}
-        <h1 className="text-9xl font-black text-slate-200 dark:text-zinc-800">
+        <p className="text-[10rem] leading-none font-black tracking-tighter text-zinc-100 dark:text-zinc-800 select-none">
           404
-        </h1>
+        </p>
 
-        <div className="mt-[-40px]">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">
-            Oups ! Component Not Found
+        <div className="-mt-10">
+          <h2 className="text-2xl font-bold mb-3">
+            Oops! Component Not Found
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md mx-auto">
+          <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-md mx-auto leading-relaxed">
             It seems you forgot to import this page. Or maybe we refactored it
             so hard it simply disappeared into the void. Either way, this route
             returns{" "}
-            <span className="bg-slate-400 px-2 py-1 rounded-xl text-black dark:text-white ">
+            <code className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-0.5 rounded-md font-mono text-xs">
               undefined
-            </span>
+            </code>
           </p>
 
           <Link
             href="/"
-            className="btn-primary px-8 py-3 inline-block transition-transform hover:scale-105"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-semibold hover:opacity-90 transition active:scale-95"
           >
-            go back to home
+            <ArrowLeft size={15} />
+            Back to home
           </Link>
         </div>
       </div>

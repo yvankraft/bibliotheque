@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { authClient } from "../../api/lib/auth-client";
+import { authClient } from "@/app/lib/auth-client";
+import { withTimeout } from "@/app/lib/with-timeout";
 import { FiTrash2, FiRotateCcw, FiAlertTriangle } from "react-icons/fi";
 import DashboardSidebar from "../components/DashboardSidebar";
 
@@ -14,7 +15,7 @@ export default function TrashPage() {
 
   const fetchTrashedProjects = async () => {
     try {
-      const res = await fetch("/api/projects?trash=true");
+      const res = await withTimeout(fetch("/api/projects?trash=true"));
       if (res.ok) {
         const data = await res.json();
         setTrashedProjects(data);
@@ -25,7 +26,7 @@ export default function TrashPage() {
   };
 
   useEffect(() => {
-    authClient.getSession().then(({ data }) => {
+    withTimeout(authClient.getSession()).then(({ data }) => {
       if (!data) {
         router.push("/auth/login");
       } else {
@@ -33,16 +34,19 @@ export default function TrashPage() {
         fetchTrashedProjects();
       }
       setLoading(false);
+    }).catch(() => {
+      setLoading(false);
+      router.push("/auth/login");
     });
   }, [router]);
 
   const handleRestore = async (id: string) => {
     try {
-      const res = await fetch(`/api/projects/${id}`, {
+      const res = await withTimeout(fetch(`/api/projects/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isDeleted: false }),
-      });
+      }));
       if (res.ok) {
         setTrashedProjects(trashedProjects.filter((p) => p.id !== id));
       }
@@ -55,9 +59,9 @@ export default function TrashPage() {
     if (!confirm("Are you sure you want to permanently delete this project? This action cannot be undone.")) return;
 
     try {
-      const res = await fetch(`/api/projects/${id}?permanent=true`, {
+      const res = await withTimeout(fetch(`/api/projects/${id}?permanent=true`, {
         method: "DELETE",
-      });
+      }));
       if (res.ok) {
         setTrashedProjects(trashedProjects.filter((p) => p.id !== id));
       }
@@ -77,7 +81,7 @@ export default function TrashPage() {
   return (
     <div className="h-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex transition-colors duration-300">
       <DashboardSidebar user={user} />
-      
+
       <main className="flex-1 h-full flex flex-col bg-white dark:bg-black relative">
         <header className="sticky top-0 z-30 min-h-[4rem] h-16 px-8 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md shrink-0">
           <h1 className="text-sm font-semibold tracking-wide text-zinc-800 dark:text-zinc-200">Overview / Trash</h1>
@@ -104,14 +108,14 @@ export default function TrashPage() {
                     <p className="text-[11px] text-zinc-500">Deleted on {new Date(project.updatedAt).toLocaleDateString()}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button 
+                    <button
                       onClick={() => handleRestore(project.id)}
                       className="px-3 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5 transition cursor-pointer"
                     >
                       <FiRotateCcw size={13} />
                       <span>Restore</span>
                     </button>
-                    <button 
+                    <button
                       onClick={() => handlePermanentDelete(project.id)}
                       className="px-3 py-1.5 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5 transition cursor-pointer"
                     >

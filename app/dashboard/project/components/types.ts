@@ -1,8 +1,18 @@
 export interface UIElement {
   id: string;
   type: string;
-  props: Record<string, any>;
+  props: Record<string, unknown>;
   children?: UIElement[] | string;
+}
+
+/** Définition d'un bloc tel que déclaré dans app/UI-Blocks/ */
+export interface RawBlockDef {
+  id?: string;
+  name: string;
+  category: string;
+  width?: number;
+  height?: number;
+  root: UIElement;
 }
 
 export interface UIBlockInstance {

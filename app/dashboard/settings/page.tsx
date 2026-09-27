@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "../../lib/auth-client";
+import { withTimeout } from "../../lib/with-timeout";
 import DashboardSidebar from "../components/DashboardSidebar";
 import { FiSettings, FiCheck, FiSliders, FiGlobe } from "react-icons/fi";
 
@@ -15,13 +16,16 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    authClient.getSession().then(({ data }) => {
+    withTimeout(authClient.getSession()).then(({ data }) => {
       if (!data) {
         router.push("/auth/login");
       } else {
         setUser(data.user);
       }
       setLoading(false);
+    }).catch(() => {
+      setLoading(false);
+      router.push("/auth/login");
     });
   }, [router]);
 
@@ -46,13 +50,13 @@ export default function SettingsPage() {
 
   return (
     <div className="h-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex transition-colors duration-300">
-      
+
       {/* Sidebar fixe */}
       <DashboardSidebar user={user} />
-      
+
       {/* Zone principale scrollable */}
       <main className="flex-1 h-full overflow-y-auto flex flex-col bg-white dark:bg-black relative">
-        
+
         {/* Header fixe */}
         <header className="sticky top-0 z-35 min-h-[4rem] h-16 px-8 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md shrink-0">
           <h1 className="text-sm font-semibold tracking-wide text-zinc-800 dark:text-zinc-200">Settings / General Workspace</h1>
@@ -60,7 +64,7 @@ export default function SettingsPage() {
 
         {/* Contenu principal */}
         <div className="p-8 space-y-8 w-full pb-16">
-          
+
           {success && (
             <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs flex items-center gap-2">
               <FiCheck size={14} />
@@ -83,17 +87,17 @@ export default function SettingsPage() {
             <form onSubmit={handleSaveSettings} className="space-y-4">
               <div>
                 <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Workspace Name</label>
-                <input 
-                  type="text" 
-                  value={workspaceName} 
+                <input
+                  type="text"
+                  value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-500 transition"
                   required
                 />
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={saving}
                 className="w-full py-2.5 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-xs font-semibold hover:opacity-90 transition cursor-pointer disabled:opacity-50"
               >

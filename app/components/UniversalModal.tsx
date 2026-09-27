@@ -42,37 +42,45 @@ export default function UniversalModal({
 
   const iconConfig = {
     error: {
-      icon: <FiAlertTriangle className="text-red-400" size={22} />,
+      icon: <FiAlertTriangle className="text-red-500" size={22} />,
       bgIcon: "bg-red-500/10 border-red-500/20",
       btnColor: "bg-red-600 hover:bg-red-500 text-white",
     },
     success: {
-      icon: <FiCheckCircle className="text-emerald-400" size={22} />,
+      icon: <FiCheckCircle className="text-emerald-500" size={22} />,
       bgIcon: "bg-emerald-500/10 border-emerald-500/20",
-      btnColor: "bg-white text-black hover:bg-zinc-200",
+      btnColor:
+        "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90",
     },
     warning: {
-      icon: <FiAlertTriangle className="text-amber-400" size={22} />,
+      icon: <FiAlertTriangle className="text-amber-500" size={22} />,
       bgIcon: "bg-amber-500/10 border-amber-500/20",
       btnColor: "bg-amber-600 hover:bg-amber-500 text-white",
     },
     info: {
-      icon: <FiInfo className="text-slate-400" size={22} />,
+      icon: <FiInfo className="text-slate-500" size={22} />,
       bgIcon: "bg-slate-500/10 border-slate-500/20",
       btnColor: "bg-slate-600 hover:bg-slate-500 text-white",
     },
   }[type];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+    >
       <div
-        className="relative w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-6"
+        className="relative w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Bouton de fermeture */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white rounded-full transition-colors cursor-pointer"
+          aria-label="Close"
+          className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded-full transition-colors cursor-pointer"
         >
           <FiX size={16} />
         </button>
@@ -84,20 +92,20 @@ export default function UniversalModal({
           </div>
 
           <div className="space-y-1 pr-4">
-            <h3 className="text-lg font-semibold tracking-tight text-zinc-100">
+            <h3 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
               {title}
             </h3>
-            <p className="text-sm text-zinc-400 leading-relaxed">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
               {message}
             </p>
           </div>
         </div>
 
         {/* Boutons d'action */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-900">
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-900">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-lg text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
           >
             Close
           </button>

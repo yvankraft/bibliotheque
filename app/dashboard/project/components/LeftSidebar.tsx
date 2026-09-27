@@ -7,11 +7,11 @@ import {
   FiChevronRight,
   FiTrash2,
 } from "react-icons/fi";
-import type { ActiveTab, UIBlockInstance } from "./types";
+import type { ActiveTab, RawBlockDef, UIBlockInstance } from "./types";
 
 interface Category {
   name: string;
-  blocks: any[];
+  blocks: RawBlockDef[];
 }
 
 interface LeftSidebarProps {
@@ -23,8 +23,8 @@ interface LeftSidebarProps {
   setOpenCategory: (c: string | null) => void;
   categories: Category[];
   canvasBlocks: UIBlockInstance[];
-  onDragStartSidebar: (e: React.DragEvent, block: any) => void;
-  onAddBlock: (block: any) => void;
+  onDragStartSidebar: (e: React.DragEvent, block: RawBlockDef) => void;
+  onAddBlock: (block: RawBlockDef) => void;
   onRemoveBlock: (instanceId: string) => void;
   onSelectBlock: (block: UIBlockInstance) => void;
 }
@@ -49,22 +49,20 @@ export default function LeftSidebar({
       <div className="flex border-b border-zinc-200 dark:border-zinc-800 p-2 gap-1 bg-white/50 dark:bg-zinc-900/50">
         <button
           onClick={() => setActiveTab("layers")}
-          className={`flex-1 py-1.5 font-medium rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
-            activeTab === "layers"
-              ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm"
-              : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
-          }`}
+          className={`flex-1 py-1.5 font-medium rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${activeTab === "layers"
+            ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm"
+            : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
+            }`}
         >
           <FiLayers size={13} />
           Layers ({canvasBlocks.length})
         </button>
         <button
           onClick={() => setActiveTab("components")}
-          className={`flex-1 py-1.5 font-medium rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
-            activeTab === "components"
-              ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm"
-              : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
-          }`}
+          className={`flex-1 py-1.5 font-medium rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${activeTab === "components"
+            ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm"
+            : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
+            }`}
         >
           <FiLayout size={13} />
           Assets
@@ -117,9 +115,8 @@ export default function LeftSidebar({
                     </div>
                     <FiChevronRight
                       size={12}
-                      className={`transform transition-transform text-zinc-400 ${
-                        openCategory === cat.name ? "rotate-90" : ""
-                      }`}
+                      className={`transform transition-transform text-zinc-400 ${openCategory === cat.name ? "rotate-90" : ""
+                        }`}
                     />
                   </button>
 

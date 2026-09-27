@@ -1,8 +1,10 @@
 import { createAuthClient } from "better-auth/react";
 import { useQuery } from "@tanstack/react-query";
+import { withTimeout } from "./with-timeout";
 
+// Pas de baseURL : le client appelle l'API sur la même origine
+// (un NEXT_PUBLIC_APP_URL obsolète casse tout si le port change)
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL,
   sessionOptions: {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -14,7 +16,7 @@ export function useAuthSession() {
   return useQuery({
     queryKey: ["auth", "session"],
     queryFn: async () => {
-      const { data, error } = await authClient.getSession();
+      const { data, error } = await withTimeout(authClient.getSession());
       if (error) throw error;
       return data ?? null;
     },

@@ -1,101 +1,138 @@
-"use client";
-
-import { useState, use } from "react";
-import { componentsListData, ComponentItem } from "@/app/data/components";
-import { notFound } from "next/navigation";
-import CopyButton from "@/app/components/CopyButton";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ChevronRight } from "lucide-react";
+import { componentsListData } from "@/app/data/components";
+import CopyButton from "@/app/components/CopyButton";
+import { CopyCommand } from "@/app/components/CopyCommand";
+import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/footer";
 
-export default function ComponentStudioPage({
+export default async function ComponentDetailPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ category: string; slug: string }>;
 }) {
-  const { slug } = use(params);
+  const { category, slug } = await params;
 
-  // 1. ÉTATS DE CUSTOMISATION (Exemple pour un bouton)
-  const [text, setText] = useState("Click Me");
-  const [color, setColor] = useState("#000000");
-  const [radius, setRadius] = useState("full");
+  const component = componentsListData.find(
+    (item) =>
+      item.slug === slug &&
+      item.category.toLowerCase() === category.toLowerCase(),
+  );
 
-  // 2. GÉNÉRATEUR DE CODE (C'est ce que l'utilisateur copiera)
-  const dynamicCode = `
-<SeeMoreButton 
-  text="${text}"
-  color="${color}"
-  radius="${radius}"
-  href="/destination"
-/>`.trim();
+  if (!component) {
+    notFound();
+  }
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-white">
-      {/* ZONE DE GAUCHE : LE CANVAS */}
-      <div className="flex-1 flex flex-col items-center justify-center p-12 border-r border-zinc-100 bg-zinc-50/50">
-        <div className="mb-8 text-xs font-mono text-zinc-400 uppercase tracking-widest">
-          Live Preview
-        </div>
+    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-300">
+      <Navbar />
 
-        {/* LE COMPOSANT REEL (Injecte tes états ici) */}
-        <div className="p-20 bg-white shadow-xl rounded-3xl border border-zinc-200">
-          <button
-            style={{
-              backgroundColor: color,
-              borderRadius: radius === "full" ? "9999px" : "8px",
-            }}
-            className="px-6 py-2 text-white font-bold uppercase italic"
+      <main className="max-w-6xl mx-auto pt-32 pb-16 px-6">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500 mb-8 flex-wrap">
+          <Link
+            href="/composants"
+            className="hover:text-zinc-900 dark:hover:text-white transition"
           >
-            {text}
-          </button>
-        </div>
-      </div>
+            Components
+          </Link>
+          <ChevronRight size={12} />
+          <Link
+            href={`/composants/${category}`}
+            className="hover:text-zinc-900 dark:hover:text-white transition capitalize"
+          >
+            {category}
+          </Link>
+          <ChevronRight size={12} />
+          <span className="text-zinc-900 dark:text-white font-medium">
+            {component.title}
+          </span>
+        </nav>
 
-      {/* ZONE DE DROITE : LES RÉGLAGES & CODE */}
-      <div className="w-full lg:w-[400px] mt-15 p-8 space-y-10 overflow-y-auto bg-white ">
-        <div>
-          <h2 className="text-2xl font-black uppercase italic italic mb-6">
-            Configure
+        <header className="mb-10">
+          <h1 className="text-3xl md:text-4xl font-black tracking-tighter">
+            {component.title}
+          </h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-3 max-w-2xl leading-relaxed">
+            {component.description}
+          </p>
+        </header>
+
+        {/* Preview */}
+        <section className="mb-10">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-4">
+            Live Preview
           </h2>
-
-          {/* LES CONTRÔLES */}
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-zinc-400">
-                Label Text
-              </label>
-              <input
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                className="w-full p-3 border border-zinc-200 rounded-xl focus:border-black outline-none transition-all"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-zinc-400">
-                Theme Color
-              </label>
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="w-full h-12 rounded-xl cursor-pointer"
-              />
-            </div>
+          <div className="flex items-center justify-center min-h-[280px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 bg-[radial-gradient(#d4d4d8_1px,transparent_1px)] dark:bg-[radial-gradient(#3f3f46_1px,transparent_1px)] [background-size:16px_16px] p-10">
+            <div className="scale-125">{component.preview}</div>
           </div>
-        </div>
+        </section>
 
-        {/* SECTION CODE MISE À JOUR EN DIRECT */}
-        <div className="pt-10 border-t border-zinc-100">
+        {/* Installation */}
+        <section className="mb-10">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-4">
+            Installation
+          </h2>
+          <CopyCommand command={component.installCommand} />
+        </section>
+
+        {/* Props */}
+        {component.props.length > 0 && (
+          <section className="mb-10">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-4">
+              Props
+            </h2>
+            <div className="overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-zinc-50 dark:bg-zinc-900 text-left">
+                    <th className="px-5 py-3 text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+                      Name
+                    </th>
+                    <th className="px-5 py-3 text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+                      Type
+                    </th>
+                    <th className="px-5 py-3 text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+                      Default
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                  {component.props.map((prop) => (
+                    <tr key={prop.name}>
+                      <td className="px-5 py-3 font-mono text-xs font-semibold">
+                        {prop.name}
+                      </td>
+                      <td className="px-5 py-3 font-mono text-xs text-slate-500 dark:text-slate-400">
+                        {prop.type}
+                      </td>
+                      <td className="px-5 py-3 font-mono text-xs text-zinc-500 dark:text-zinc-400">
+                        {prop.default}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* Code source */}
+        <section>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xs font-bold uppercase tracking-widest">
-              Get the Code
-            </h3>
-            <CopyButton code={dynamicCode} />
+            <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              Source Code
+            </h2>
+            <CopyButton code={component.codeTSX} />
           </div>
-          <pre className="bg-zinc-900 text-zinc-400 p-5 rounded-2xl text-[11px] font-mono leading-relaxed overflow-x-auto border border-zinc-800">
-            {dynamicCode}
+          <pre className="bg-zinc-950 text-zinc-300 p-6 rounded-2xl text-xs font-mono leading-relaxed overflow-x-auto border border-zinc-800">
+            {component.codeTSX}
           </pre>
-        </div>
-      </div>
+        </section>
+      </main>
+
+      <Footer />
     </div>
   );
 }

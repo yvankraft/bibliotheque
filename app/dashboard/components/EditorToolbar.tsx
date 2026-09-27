@@ -1,6 +1,6 @@
 "use client";
 
-import { FiMousePointer, FiType, FiSquare, FiPlusSquare, FiFileText, FiPlus, FiX } from "react-icons/fi";
+import { FiMousePointer, FiType, FiSquare, FiPlusSquare, FiFileText, FiPlus, FiX, FiBox } from "react-icons/fi";
 
 interface PageItem {
   id: string;
@@ -27,15 +27,16 @@ export default function EditorToolbar({
   onDeletePage,
 }: EditorToolbarProps) {
   const tools = [
-    { id: "cursor", icon: FiMousePointer, label: "Sélectionner" },
-    { id: "frame", icon: FiSquare, label: "Conteneur" },
-    { id: "text", icon: FiType, label: "Texte" },
-    { id: "button", icon: FiPlusSquare, label: "Bouton" },
+    { id: "cursor", icon: FiMousePointer, label: "Sélectionner (V)" },
+    { id: "frame", icon: FiSquare, label: "Conteneur (F)" },
+    { id: "text", icon: FiType, label: "Texte (T)" },
+    { id: "button", icon: FiPlusSquare, label: "Bouton (B)" },
+    { id: "scene3d", icon: FiBox, label: "Scène 3D (3)" },
   ];
 
   return (
     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 p-1.5 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-full shadow-2xl">
-      
+
       {/* Outils */}
       <div className="flex items-center gap-1">
         {tools.map((tool) => {
@@ -46,11 +47,10 @@ export default function EditorToolbar({
               key={tool.id}
               onClick={() => setActiveTool(tool.id)}
               title={tool.label}
-              className={`p-2.5 rounded-full transition-all duration-200 ${
-                isActive 
-                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md" 
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900"
-              }`}
+              className={`p-2.5 rounded-full transition-all duration-200 ${isActive
+                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md"
+                : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                }`}
             >
               <Icon size={16} />
             </button>
@@ -68,11 +68,10 @@ export default function EditorToolbar({
             <div
               key={page.id}
               onClick={() => onSelectPage(page.id)}
-              className={`group flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all ${
-                isActive
-                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30"
-                  : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
-              }`}
+              className={`group flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all ${isActive
+                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                }`}
             >
               <FiFileText size={14} />
               <span>{page.name}</span>
@@ -91,7 +90,7 @@ export default function EditorToolbar({
           );
         })}
 
-        <button 
+        <button
           onClick={onAddPage}
           title="Nouvelle page"
           className="p-2 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"

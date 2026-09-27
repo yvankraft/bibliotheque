@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "../../lib/auth-client";
+import { withTimeout } from "../../lib/with-timeout";
 import DashboardSidebar from "../components/DashboardSidebar";
 import { FiUser, FiCheck, FiLock, FiShield, FiLogOut, FiTrash2 } from "react-icons/fi";
 
@@ -11,7 +12,7 @@ export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [name, setName] = useState("");
   const [image, setImage] = useState("");
-  
+
   // États pour le changement de mot de passe
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -21,7 +22,7 @@ export default function ProfilePage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
-  
+
   // États pour les modales de confirmation
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -32,7 +33,7 @@ export default function ProfilePage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    authClient.getSession().then(({ data }) => {
+    withTimeout(authClient.getSession()).then(({ data }) => {
       if (!data) {
         router.push("/auth/login");
       } else {
@@ -41,6 +42,9 @@ export default function ProfilePage() {
         setImage(data.user.image || "");
       }
       setLoading(false);
+    }).catch(() => {
+      setLoading(false);
+      router.push("/auth/login");
     });
   }, [router]);
 
@@ -51,10 +55,10 @@ export default function ProfilePage() {
     setErrorMessage("");
 
     try {
-      const { error } = await authClient.updateUser({
+      const { error } = await withTimeout(authClient.updateUser({
         name,
         image,
-      });
+      }));
 
       if (error) {
         setErrorMessage(error.message || "Failed to update profile.");
@@ -80,11 +84,11 @@ export default function ProfilePage() {
     setErrorMessage("");
 
     try {
-      const { error } = await authClient.changePassword({
+      const { error } = await withTimeout(authClient.changePassword({
         currentPassword,
         newPassword,
         revokeOtherSessions: true,
-      });
+      }));
 
       if (error) {
         setErrorMessage(error.message || "Failed to change password.");
@@ -103,13 +107,13 @@ export default function ProfilePage() {
 
   const handleSignOut = async () => {
     try {
-      await authClient.signOut({
+      await withTimeout(authClient.signOut({
         fetchOptions: {
           onSuccess: () => {
             router.push("/auth/login");
           },
         },
-      });
+      }));
     } catch (err) {
       setErrorMessage("An error occurred during sign out.");
     }
@@ -133,7 +137,7 @@ export default function ProfilePage() {
     setDeletingAccount(true);
     setErrorMessage("");
     try {
-      const { error } = await authClient.deleteUser();
+      const { error } = await withTimeout(authClient.deleteUser());
       if (error) {
         setErrorMessage(error.message || "Failed to delete account.");
         setDeletingAccount(false);
@@ -156,13 +160,13 @@ export default function ProfilePage() {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex transition-colors duration-300">
-      
+
       {/* Sidebar fixe qui ne bouge pas */}
       <DashboardSidebar user={user} />
-      
+
       {/* Zone principale qui prend le reste de l'espace et scrolle verticalement */}
       <main className="flex-1 h-full overflow-y-auto flex flex-col bg-white dark:bg-black relative">
-        
+
         {/* Header avec hauteur fixe explicite */}
         <header className="sticky top-0 z-35 min-h-[4rem] h-16 px-8 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md shrink-0">
           <h1 className="text-sm font-semibold tracking-wide text-zinc-800 dark:text-zinc-200">Settings / Profile & Security</h1>
@@ -170,7 +174,7 @@ export default function ProfilePage() {
 
         {/* Contenu principal */}
         <div className="p-8 max-w-4xl space-y-8 w-full pb-16">
-          
+
           {/* Messages de retour */}
           {successMessage && (
             <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs flex items-center gap-2">
@@ -190,10 +194,10 @@ export default function ProfilePage() {
           <div className="p-6 border border-zinc-200 dark:border-zinc-800 rounded-2xl bg-zinc-50 dark:bg-zinc-950 space-y-6 shadow-sm">
             <div className="flex items-center gap-4 pb-6 border-b border-zinc-200 dark:border-zinc-900">
               {image ? (
-                <img 
-                  src={image} 
-                  alt="Avatar" 
-                  className="w-16 h-16 rounded-full object-cover border border-zinc-300 dark:border-zinc-700" 
+                <img
+                  src={image}
+                  alt="Avatar"
+                  className="w-16 h-16 rounded-full object-cover border border-zinc-300 dark:border-zinc-700"
                 />
               ) : (
                 <div className="w-16 h-16 rounded-full bg-zinc-200 dark:bg-zinc-900 flex items-center justify-center text-lg font-bold text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-800">
@@ -212,9 +216,9 @@ export default function ProfilePage() {
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div>
                 <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Display Name</label>
-                <input 
-                  type="text" 
-                  value={name} 
+                <input
+                  type="text"
+                  value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-500 transition"
                   required
@@ -223,9 +227,9 @@ export default function ProfilePage() {
 
               <div>
                 <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Avatar Image URL</label>
-                <input 
-                  type="url" 
-                  value={image} 
+                <input
+                  type="url"
+                  value={image}
                   onChange={(e) => setImage(e.target.value)}
                   placeholder="https://example.com/avatar.jpg"
                   className="w-full px-3.5 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-500 transition"
@@ -234,16 +238,16 @@ export default function ProfilePage() {
 
               <div>
                 <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Email Address (Read-only)</label>
-                <input 
-                  type="email" 
-                  disabled 
-                  value={user?.email || ""} 
+                <input
+                  type="email"
+                  disabled
+                  value={user?.email || ""}
                   className="w-full px-3.5 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900/50 text-xs text-zinc-500 cursor-not-allowed"
                 />
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={savingProfile}
                 className="w-full py-2.5 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-xs font-semibold hover:opacity-90 transition cursor-pointer disabled:opacity-50"
               >
@@ -267,9 +271,9 @@ export default function ProfilePage() {
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div>
                 <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Current Password</label>
-                <input 
-                  type="password" 
-                  value={currentPassword} 
+                <input
+                  type="password"
+                  value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full px-3.5 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-500 transition"
@@ -279,9 +283,9 @@ export default function ProfilePage() {
 
               <div>
                 <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-600 dark:text-zinc-400 mb-2">New Password</label>
-                <input 
-                  type="password" 
-                  value={newPassword} 
+                <input
+                  type="password"
+                  value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full px-3.5 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-500 transition"
@@ -291,9 +295,9 @@ export default function ProfilePage() {
 
               <div>
                 <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Confirm New Password</label>
-                <input 
-                  type="password" 
-                  value={confirmPassword} 
+                <input
+                  type="password"
+                  value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full px-3.5 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-500 transition"
@@ -301,8 +305,8 @@ export default function ProfilePage() {
                 />
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={savingPassword}
                 className="w-full py-2.5 rounded-lg bg-zinc-200 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs font-semibold hover:bg-zinc-300 dark:hover:bg-zinc-800 transition cursor-pointer disabled:opacity-50 mt-4"
               >

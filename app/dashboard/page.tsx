@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { authClient } from "../api/lib/auth-client";
+import { authClient } from "@/app/lib/auth-client";
+import { withTimeout } from "@/app/lib/with-timeout";
 import DashboardSidebar from "./components/DashboardSidebar";
 import { FiFolder, FiPlusCircle, FiX, FiMoreVertical, FiEdit2, FiShare2, FiTrash2 } from "react-icons/fi";
 import UniversalModal from "../components/UniversalModal";
@@ -37,7 +38,7 @@ export default function DashboardPage() {
 
   const fetchProjects = async () => {
     try {
-      const res = await fetch("/api/projects");
+      const res = await withTimeout(fetch("/api/projects"));
       if (res.ok) {
         const data = await res.json();
         setProjects(data);
@@ -48,7 +49,7 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    authClient.getSession().then(({ data }) => {
+    withTimeout(authClient.getSession()).then(({ data }) => {
       if (!data) {
         router.push("/auth/login");
       } else {
@@ -56,6 +57,9 @@ export default function DashboardPage() {
         fetchProjects();
       }
       setLoading(false);
+    }).catch(() => {
+      setLoading(false);
+      router.push("/auth/login");
     });
 
     const handleClickOutside = (e: MouseEvent) => {
@@ -81,11 +85,11 @@ export default function DashboardPage() {
     setErrorMessage("");
 
     try {
-      const res = await fetch("/api/projects", {
+      const res = await withTimeout(fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: projectName }),
-      });
+      }));
 
       if (!res.ok) {
         const data = await res.json();
@@ -112,7 +116,7 @@ export default function DashboardPage() {
     if (!projectToDelete) return;
 
     try {
-      const res = await fetch(`/api/projects/${projectToDelete.id}`, { method: "DELETE" });
+      const res = await withTimeout(fetch(`/api/projects/${projectToDelete.id}`, { method: "DELETE" }));
       if (res.ok) {
         setProjects(projects.filter((p) => p.id !== projectToDelete.id));
       }
@@ -143,11 +147,11 @@ export default function DashboardPage() {
     if (!projectToRename || !newProjectName.trim()) return;
 
     try {
-      const res = await fetch(`/api/projects/${projectToRename.id}`, {
+      const res = await withTimeout(fetch(`/api/projects/${projectToRename.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newProjectName }),
-      });
+      }));
 
       if (res.ok) {
         setIsRenameModalOpen(false);
@@ -172,15 +176,15 @@ export default function DashboardPage() {
 
   return (
     <div className="h-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex transition-colors duration-300">
-      
+
       <DashboardSidebar user={user} />
-      
+
       <main className="flex-1 h-full overflow-y-hidden flex flex-col bg-white dark:bg-black relative w-full">
-        
+
         {/* Topbar avec z-index et visibilité garanties */}
         <header className="sticky top-0 z-30 min-h-[4rem] w-full h-16 px-8 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md shrink-0">
           <h1 className="text-sm font-semibold tracking-wide text-zinc-800 dark:text-zinc-200">Overview / Projects</h1>
-          
+
           <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-xs font-semibold hover:opacity-90 transition cursor-pointer shadow-sm"
@@ -214,7 +218,7 @@ export default function DashboardPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
                 {projects.map((project) => (
-                  <div 
+                  <div
                     key={project.id}
                     onClick={() => handleOpenProject(project.id)}
                     className="p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex items-center justify-between group hover:border-zinc-400 dark:hover:border-zinc-600 transition relative cursor-pointer"
@@ -229,8 +233,12 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="relative" ref={menuRef} onClick={(e) => e.stopPropagation()}>
-                      <button 
+                    <div
+                      className="relative"
+                      ref={activeMenuId === project.id ? menuRef : null}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
                         onClick={() => setActiveMenuId(activeMenuId === project.id ? null : project.id)}
                         className="p-2 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800 transition cursor-pointer"
                       >
@@ -295,9 +303,9 @@ export default function DashboardPage() {
             <form onSubmit={handleCreateProject} className="space-y-4">
               <div>
                 <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Project Name</label>
-                <input 
-                  type="text" 
-                  value={projectName} 
+                <input
+                  type="text"
+                  value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
                   placeholder="e.g. crystal-night"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-black dark:focus:border-white transition"
@@ -311,7 +319,7 @@ export default function DashboardPage() {
                   Cancel
                 </button>
                 <button type="submit" disabled={creating || !projectName.trim()} className="flex-1 py-2.5 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-xs font-semibold hover:opacity-90 transition disabled:opacity-50 cursor-pointer flex items-center justify-center">
-                  {creating ? "Creating..." : "Creer"}
+                  {creating ? "Creating..." : "Create"}
                 </button>
               </div>
             </form>
@@ -335,9 +343,9 @@ export default function DashboardPage() {
             <form onSubmit={handleRenameSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-600 dark:text-zinc-400 mb-2">New Name</label>
-                <input 
-                  type="text" 
-                  value={newProjectName} 
+                <input
+                  type="text"
+                  value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-black dark:focus:border-white transition"
                   required

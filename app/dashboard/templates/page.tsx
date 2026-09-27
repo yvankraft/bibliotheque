@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { authClient } from "../../lib/auth-client";
+import { withTimeout } from "../../lib/with-timeout";
 import DashboardSidebar from "../components/DashboardSidebar";
 import { FiLayout, FiArrowRight } from "react-icons/fi";
 import { useRouter } from "next/navigation";
@@ -18,10 +19,13 @@ export default function TemplatesPage() {
   ];
 
   useEffect(() => {
-    authClient.getSession().then(({ data }) => {
-      if (!data) router.push("/login");
+    withTimeout(authClient.getSession()).then(({ data }) => {
+      if (!data) router.push("/auth/login");
       else setUser(data.user);
       setLoading(false);
+    }).catch(() => {
+      setLoading(false);
+      router.push("/auth/login");
     });
   }, [router]);
 
@@ -36,7 +40,7 @@ export default function TemplatesPage() {
   return (
     <div className="h-screen overflow-hidden bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex transition-colors duration-300">
       <DashboardSidebar user={user} />
-      
+
       <main className="flex-1 h-full overflow-y-auto flex flex-col bg-white dark:bg-black relative">
         <header className="sticky top-0 z-30 min-h-[4rem] h-16 px-8 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md shrink-0">
           <h1 className="text-sm font-semibold tracking-wide text-zinc-800 dark:text-zinc-200">Overview / Templates</h1>
@@ -59,7 +63,7 @@ export default function TemplatesPage() {
                   <p className="text-xs text-zinc-500 leading-relaxed">{tpl.desc}</p>
                 </div>
 
-                <button 
+                <button
                   onClick={() => router.push("/dashboard/new")}
                   className="w-full py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-800 dark:text-zinc-200 flex items-center justify-center gap-2 transition cursor-pointer"
                 >
